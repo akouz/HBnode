@@ -1,6 +1,6 @@
 # HBnode AVR64DD32
 
-A small board based on AVR64DD32 is supposed to be used in GBus project instead of Arduino Pro Mini. It has the same size and similar pin-out, but differs by the following:
+A small board based on AVR64DD32 is supposed to be used in HBus project instead of Arduino Pro Mini. It has the same size and similar pin-out, but differs by the following:
 
 -- Program memory 64K instead of 32K.
 
