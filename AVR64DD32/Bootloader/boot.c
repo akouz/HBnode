@@ -4,7 +4,7 @@
  * Target   AVRxxDD32
  * Compiler AVR-GCC v7.3.0  pack AVR-Rx_DFP v1.10.124
  *
- * (c) 2023 Alex Kouznetsov,  https://github.com/akouz/hbus
+ * (c) 2023 Alex Kouznetsov,  https://github.com/akouz/hbnode
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
