@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="11"/>
+    <BuildModes Active="Default"/>
+    <Units Count="11">
+      <Unit0>
+        <Filename Value="HEXLoader.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="44" Y="22"/>
+        <UsageCount Value="170"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="HLmain.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="841"/>
+        <CursorPos X="7" Y="914"/>
+        <UsageCount Value="170"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="rxtx.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="RxTx"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="36"/>
+        <CursorPos X="16" Y="63"/>
+        <UsageCount Value="147"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="C:\Tools\Lazarus\lcl\interfaces\win32\win32listsl.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="140"/>
+        <CursorPos X="27" Y="154"/>
+        <UsageCount Value="3"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="C:\Tools\Lazarus\lcl\include\customcombobox.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="926"/>
+        <CursorPos Y="947"/>
+        <UsageCount Value="8"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="F:\Tools\Lazarus\components\Cportlaz_v1.0.0\CPortCtl.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="784"/>
+        <CursorPos Y="801"/>
+        <UsageCount Value="9"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="HLrxtxU.pas"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="95"/>
+        <CursorPos X="61" Y="101"/>
+        <UsageCount Value="67"/>
+        <Loaded Value="True"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="F:\Tools\Lazarus\components\Cportlaz_v1.0.0\CPort.pas"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="1605"/>
+        <CursorPos X="91" Y="1619"/>
+        <UsageCount Value="43"/>
+        <Loaded Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="C:\Tools\Lazarus\lcl\customtimer.pas"/>
+        <UnitName Value="CustomTimer"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="134"/>
+        <CursorPos Y="151"/>
+        <UsageCount Value="9"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="C:\Tools\Lazarus\lcl\interfaces\win32\win32callback.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2823"/>
+        <CursorPos Y="2848"/>
+        <UsageCount Value="9"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="C:\Tools\Lazarus\lcl\include\tabcontrol.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="445"/>
+        <CursorPos Y="463"/>
+        <UsageCount Value="9"/>
+      </Unit10>
+    </Units>
+    <JumpHistory Count="30" HistoryIndex="29">
+      <Position1>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="327" TopLine="308"/>
+      </Position1>
+      <Position2>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="328" TopLine="308"/>
+      </Position2>
+      <Position3>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="329" TopLine="308"/>
+      </Position3>
+      <Position4>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="330" TopLine="312"/>
+      </Position4>
+      <Position5>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="331" Column="46" TopLine="312"/>
+      </Position5>
+      <Position6>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="332" TopLine="312"/>
+      </Position6>
+      <Position7>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="333" TopLine="312"/>
+      </Position7>
+      <Position8>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="334" TopLine="312"/>
+      </Position8>
+      <Position9>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="335" TopLine="312"/>
+      </Position9>
+      <Position10>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="329" TopLine="312"/>
+      </Position10>
+      <Position11>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="330" TopLine="312"/>
+      </Position11>
+      <Position12>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="331" TopLine="312"/>
+      </Position12>
+      <Position13>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="332" TopLine="312"/>
+      </Position13>
+      <Position14>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="333" TopLine="312"/>
+      </Position14>
+      <Position15>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="334" TopLine="312"/>
+      </Position15>
+      <Position16>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="335" TopLine="312"/>
+      </Position16>
+      <Position17>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="329" TopLine="312"/>
+      </Position17>
+      <Position18>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="330" TopLine="312"/>
+      </Position18>
+      <Position19>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="331" TopLine="312"/>
+      </Position19>
+      <Position20>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="332" TopLine="312"/>
+      </Position20>
+      <Position21>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="333" TopLine="312"/>
+      </Position21>
+      <Position22>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="334" TopLine="312"/>
+      </Position22>
+      <Position23>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="335" TopLine="312"/>
+      </Position23>
+      <Position24>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="331" Column="39" TopLine="312"/>
+      </Position24>
+      <Position25>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="337" TopLine="312"/>
+      </Position25>
+      <Position26>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="338" TopLine="312"/>
+      </Position26>
+      <Position27>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="339" TopLine="312"/>
+      </Position27>
+      <Position28>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="313" Column="63" TopLine="312"/>
+      </Position28>
+      <Position29>
+        <Filename Value="HLmain.pas"/>
+        <Caret Line="337" Column="25" TopLine="317"/>
+      </Position29>
+      <Position30>
+        <Filename Value="HLrxtxU.pas"/>
+        <Caret Line="101" Column="61" TopLine="95"/>
+      </Position30>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="0" ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>
