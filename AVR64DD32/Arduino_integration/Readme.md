@@ -3,7 +3,9 @@
   * Install DxCore to Arduino. Start Arduino IDE, in Tools/Board/Boards Manager find DxCore and install it. Current DxCore version is 1.5.6.
   * Open folder C:\Users\User\AppData\Local\Arduino15\packages\DxCore\hardware\megaavr\1.5.6
   * Replace file "boards.txt" with the file provided here
+  
 Use a demo sketch "Blink.ino" to test Arduino integration:
+
   * Copy sketch "Blink.ino" into a folder "Blink"
   * Start Arduino IDE
   * Select "Blink.ino" sketch
