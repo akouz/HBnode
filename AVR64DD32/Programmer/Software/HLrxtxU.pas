@@ -125,7 +125,7 @@ begin
 end;
 
 // =====================================
-// Last recived reply
+// Last received reply
 // =====================================
 function THLxtx.LastReply: char;
 begin

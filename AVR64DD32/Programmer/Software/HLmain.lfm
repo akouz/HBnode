@@ -1,9 +1,9 @@
 object Form1: TForm1
-  Left = 837
+  Left = 1082
   Height = 490
-  Top = 223
+  Top = 139
   Width = 661
-  Caption = 'HEXloader rev 1.1'
+  Caption = 'HEXloader rev 1.2'
   ClientHeight = 490
   ClientWidth = 661
   OnClose = FormClose
@@ -187,6 +187,7 @@ object Form1: TForm1
     object LB: TListBox
       Left = 2
       Height = 375
+      Hint = 'Click to select line, then use Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+S'
       Top = 23
       Width = 657
       Align = alClient
@@ -198,6 +199,7 @@ object Form1: TForm1
       Font.Quality = fqDraft
       ItemHeight = 0
       OnDblClick = LBDblClick
+      OnKeyPress = LBKeyPress
       ParentFont = False
       TabOrder = 1
     end
@@ -217,6 +219,12 @@ object Form1: TForm1
     Interval = 50
     OnTimer = Timer2Timer
     left = 368
+    top = 184
+  end
+  object SaveDialog: TSaveDialog
+    Filter = 'hex file|*.hex|any file|*.*'
+    InitialDir = '.'
+    left = 480
     top = 184
   end
 end

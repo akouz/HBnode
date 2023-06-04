@@ -35,7 +35,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Menus, ExtCtrls,
-  StdCtrls, ComCtrls, CPort, IniFiles, Registry, HLrxtxU;
+  StdCtrls, ComCtrls, CPort, IniFiles, Clipbrd, Registry, HLrxtxU;
 
 type
 
@@ -61,6 +61,7 @@ type
     LB: TListBox;
     OpenDialog: TOpenDialog;
     Panel1: TPanel;
+    SaveDialog: TSaveDialog;
     TabCtrl: TTabControl;
     Timer1: TTimer;
     Timer2: TTimer;
@@ -77,6 +78,7 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure LBDblClick(Sender: TObject);
+    procedure LBKeyPress(Sender: TObject; var Key: char);
     procedure TabCtrlChange(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
     procedure Timer2Timer(Sender: TObject);
@@ -100,6 +102,8 @@ type
     function CodeBufCRC(len : integer) : word;
     function ParseLB : boolean;
     function ParseString(ss : string) : boolean;
+    function RestoreCheckSum(ss : string) : string;
+    procedure OpenFile(fn : string);
     procedure ShowData;
     procedure ShowBootData;
     procedure ShowRx;
@@ -118,6 +122,8 @@ type
 
 var
   Form1: TForm1;
+  Clpbrd: TClipboard;
+  CBuf : array [0..$100] of byte;
 
 //##############################################################################
 implementation
@@ -134,6 +140,8 @@ var ini : TIniFile;
 begin
   LB.Clear;
   ClrBuf;
+  Clpbrd:= TClipboard.Create;
+  Clpbrd.AddFormat(CF_TEXT, CBuf, $100);
   Prog_connected := false;
   ini := TIniFile.Create('HEXloader.ini');
   ComPortNo := AnsiUpperCase(trim(ini.ReadString('ComPort','number','COM3')));
@@ -170,6 +178,60 @@ begin
 end;
 
 //================================================
+// On keypress
+//================================================
+procedure TForm1.LBKeyPress(Sender: TObject; var Key: char);
+var i : integer;
+    s : string;
+begin
+  for i:=0 to LB.Count-1 do begin
+    if LB.Selected[i] then begin
+      // -------------------
+      // Copy - Ctrl+C
+      // -------------------
+      if Key = char(3) then begin
+        s := LB.Items.Strings[i];
+        Clpbrd.AsText := s;
+      end;
+      if TabCtrl.TabIndex = 0 then begin
+        // -------------------
+        // Paste - Ctrl+V or Ctrl+H
+        // -------------------
+        if (Key = char(22)) or (Key = char(6))  then begin
+          s :=  Clpbrd.AsText;
+          if (s <> '') and (s[1] = ':') then begin
+            s := RestoreCheckSum(Clpbrd.AsText);
+            LB.Items.Strings[i] := s;
+            ParseLB;
+            s := 'Address range [0x'+IntToHex(addr_min,4)+'..0x'+ IntToHex(addr_max,4)+'], ';
+            s := s + IntToStr(codecnt) + ' bytes loaded';
+            LblAddr.Caption := s;
+          end;
+        end;
+        // -------------------
+        // Delete - Ctrl+X
+        // -------------------
+        if Key = char(24) then begin
+          LB.DeleteSelected;
+        end;
+        // -------------------
+        // Save - Ctrl+S
+        // -------------------
+        if Key = char(19) then begin
+          SaveDialog.FileName := FileName;
+          if SaveDialog.Execute then begin
+            FileName := SaveDialog.FileName;
+            LB.Items.SaveToFile(FileName);
+            OpenFile(FileName);
+          end;
+        end;
+      end;
+      break;
+    end;
+  end;
+end;
+
+//================================================
 // Close
 //================================================
 procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -180,6 +242,7 @@ begin
     ini.WriteString('ComPort','number', ComPortNo);
   if FileName <> '' then
     ini.WriteString('File','name',FileName);
+  Clpbrd.Free;
   rxtx.Free;
   ini.Free;
   HF.Free;
@@ -442,11 +505,15 @@ end;
 //================================================
 procedure TForm1.TabCtrlChange(Sender: TObject);
 begin
+  LB.ShowHint:=false;
   case TabCtrl.TabIndex of
-  0: if (FileName <> '') then
-       LB.Items.LoadFromFile(FileName)
-     else
-       LB.Clear;
+  0: begin
+      if (FileName <> '') then
+        LB.Items.LoadFromFile(FileName)
+      else
+        LB.Clear;
+      LB.ShowHint:=true;
+    end;
   1: ShowData;
   2: ShowBootData;
   3: ShowRx;
@@ -588,6 +655,29 @@ begin
 end;
 
 //================================================
+// Assuming hex string was edited, restore its checksum
+//================================================
+function TForm1.RestoreCheckSum(ss: string): string;
+var s : string;
+    i, len : integer;
+    buf : array [0..$FF] of byte;
+    cs, val : byte;
+begin
+  result := ss;
+  if length(ss) > 5 then begin
+    if ss[1] = ':' then begin
+      len := HexStrToBuf(ss, buf);
+      cs := 0;
+      for i:=0 to len-2 do
+        cs := cs + buf[i];
+      cs := (cs xor $FF) + 1;
+      result := copy(ss, 1, length(ss)-2);
+      result := result + IntToHex(cs,2);
+    end;
+  end;
+end;
+
+//================================================
 // Display data
 //================================================
 procedure TForm1.ShowData;
@@ -684,6 +774,23 @@ end;
 //================================================
 // Open file
 //================================================
+procedure TForm1.OpenFile(fn: string);
+var s : string;
+begin
+  LblFn.Caption := 'File '+ExtractFileName(FileName);
+  ClrBuf;
+  LB.Items.LoadFromFile(FileName);
+  ParseLB;
+  s := 'Address range [0x'+IntToHex(addr_min,4)+'..0x'+ IntToHex(addr_max,4)+'], ';
+  s := s + IntToStr(codecnt) + ' bytes loaded';
+  LblAddr.Caption := s;
+  BtnSendBuf.Enabled:=true;
+end;
+
+
+//================================================
+// Open file button
+//================================================
 procedure TForm1.BtnFileClick(Sender: TObject);
 var s : string;
 begin
@@ -693,15 +800,9 @@ begin
   end;
   if OpenDialog.Execute then begin
     TabCtrl.TabIndex := 0;
+    LB.ShowHint:=true;
     FileName := OpenDialog.FileName;
-    LblFn.Caption := 'File '+ExtractFileName(FileName);
-    ClrBuf;
-    LB.Items.LoadFromFile(FileName);
-    ParseLB;
-    s := 'Address range [0x'+IntToHex(addr_min,4)+'..0x'+ IntToHex(addr_max,4)+'], ';
-    s := s + IntToStr(codecnt) + ' bytes loaded';
-    LblAddr.Caption := s;
-    BtnSendBuf.Enabled:=true;
+    OpenFile(FileName);
   end;
 end;
 
