@@ -55,8 +55,6 @@ void i2c_stop(void)
 // ============================================
 void init_i2c(void)
 {
-   // PORTC.PIN2CTRL = BIT3;  // PC2 pull-up
-   // PORTD.PIN1CTRL = BIT3;  // PD1 pull-up
     i2c_stop();             // ensure initial state SDA=1, SCL=1
     PORTC.OUTCLR = BIT2;    // clear PC2 output latch
     PORTD.OUTCLR = BIT1;    // clear PD1 output latch

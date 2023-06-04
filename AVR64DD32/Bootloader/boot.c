@@ -4,7 +4,7 @@
  * Target   AVRxxDD32
  * Compiler AVR-GCC v7.3.0  pack AVR-Rx_DFP v1.10.124
  *
- * (c) 2023 Alex Kouznetsov,  https://github.com/akouz/hbnode
+ * (c) 2023 Alex Kouznetsov,  https://github.com/akouz/hbus
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -74,9 +74,9 @@ FUSES = {
 	.BODCFG = 0x00,     // BODCFG {SLEEP=DISABLE, ACTIVE=DISABLE, SAMPFREQ=128Hz, LVL=BODLEVEL0}
 	.OSCCFG = 0x00,     // OSCCFG {CLKSEL=OSCHF}
 	.SYSCFG0 = 0xD9,    // SYSCFG0 {EESAVE=keep, RSTPINCFG=RST, UPDIPINCFG=UPDI, CRCSEL=CRC16, CRCSRC=NOCRC}
-	.SYSCFG1 = 0x14,    // SYSCFG1 {SUT=8MS, MVSYSCFG=SINGLE}
+	.SYSCFG1 = 0x0C,    // SYSCFG1 {SUT=8ms, MVSYSCFG=DUAL}
 	.CODESIZE = 0x00,   // CODESIZE no appdata, only boot+appcode
-	.BOOTSIZE = BOOT_BLOCKS, 
+	.BOOTSIZE = BOOT_BLOCKS, // 2 blocks, 512*2 = 1K bytes
 };
 
 //##############################################################################
@@ -99,9 +99,10 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
 {
     // Initialize system for AVR GCC support, expects r1 = 0 
     asm volatile("clr r1");
-
-    //disable interrupts
-    asm("cli");    
+    
+    asm("cli");    //disable interrupts
+    GPR.GPR0 = RSTCTRL.RSTFR; // store reset flags    
+    
     init_i2c();
     if (OK == i2c_read(eebuf, 0x10, 8))     // read descriptor: 8 bytes starting from addr 0x10
     {
@@ -149,10 +150,10 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
                 wait_flash();
             }    
             // -----------------------
-            // clear descriptor to prevent repeated writes
+            // clear descriptor and reset
             // -----------------------
             i2c_write(NULL, 0x10, 4);      // clear descriptor in EEPROM
-            CLR_LED;
+            RSTCTRL.SWRR = 1;   // software reset    
         } // if pattern matches    
     }
 #ifdef DEBUG_BOOT    
@@ -181,6 +182,7 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
         NOP();
     }    
 #else    
+    RSTCTRL.RSTFR = 0;       // clear reset flags
     asm("jmp 0x0400");  
 #endif    
 }
