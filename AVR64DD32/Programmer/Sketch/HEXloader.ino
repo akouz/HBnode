@@ -144,7 +144,8 @@ void setup()
   Serial.println("=================================");
   Serial.println("=== HBus HEXloader programmer ===");
   Serial.println("=================================");
-  rxtx.reply_rev();      // promptly print revisions
+  rxtx.reply_rev();      		// promptly print revisions
+  digitalWrite(RST_PIN, HIGH); 		// release target 
 }
 //#####################################################
 // Run

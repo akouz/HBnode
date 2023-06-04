@@ -49,6 +49,7 @@ uchar  RxTx::add_rx_char(char c)
    {
       return DONE;
    }
+   return ERR;
 }
 //================================
 // Reply revision
@@ -81,7 +82,7 @@ uchar char_to_nibble(char c)
 //================================
 uchar RxTx::HEX_to_bin(binbuf_t*  binbuf)
 {
-  uchar len, nib, val, cs;
+  uchar len, nib, val=0, cs;
   char c;
   if (binbuf)
   {
