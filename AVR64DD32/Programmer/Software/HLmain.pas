@@ -316,7 +316,8 @@ var s : string;
 begin
   s := 'R' + char(0);
   cmd_sent := 'R';
-  rxtx.Tx(s);
+  if not rxtx.Tx(s) then
+    Application.Terminate;
 end;
 
 //================================================
@@ -327,7 +328,8 @@ var s : string;
 begin
   s := 'Q' + char(0);
   cmd_sent := 'Q';
-  rxtx.Tx(s);
+  if not rxtx.Tx(s) then
+    Application.Terminate;
 end;
 
 //================================================
@@ -361,7 +363,8 @@ begin
   s := s + IntToHex(cs,2);
   Sent.Add(s);
   cmd_sent := '!';
-  rxtx.Tx(s+char(0));
+  if not rxtx.Tx(s+char(0)) then
+    Application.Terminate;
   result := 1;
 end;
 
@@ -402,7 +405,8 @@ begin
         Sent.Add(s);
         s := s + char(0);
         cmd_sent := ':';
-        rxtx.Tx(s);
+        if not rxtx.Tx(s) then
+          Application.Terminate;
         break;
       end;
     end;
@@ -418,7 +422,8 @@ var s : string;
 begin
   s := 'H' + char(0);
   cmd_sent := 'H';
-  rxtx.Tx(s);
+  if not rxtx.Tx(s) then
+    Application.Terminate;
 end;
 
 //================================================
@@ -429,7 +434,8 @@ var s : string;
 begin
   s := 'L' + char(0);
   cmd_sent := 'L';
-  rxtx.Tx(s);
+  if not rxtx.Tx(s) then
+    Application.Terminate;
 end;
 
 //================================================

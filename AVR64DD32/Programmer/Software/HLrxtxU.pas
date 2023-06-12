@@ -43,6 +43,7 @@ type
   private
     last_echo : char;
     reply : string;                     // when a reply received
+    err_cnt : integer;
   public
     ComPort: TComPort;
     PortOk : boolean;
@@ -70,6 +71,7 @@ function THLxtx.Tx(msg: string): boolean;
 begin
   result := false;
   if (ComPort.Connected and PortOk) then begin
+    err_cnt := 0;
     try
       if (msg <> '') then begin
         ComPort.WriteStr(msg);
@@ -80,8 +82,11 @@ begin
         ComPort.Connected:=false;
       PortOk := false;
     end;
-  end else
-    ShowMessage('COM port not connected');
+  end else begin
+    inc(err_cnt);
+    if (err_cnt < 3) then
+      ShowMessage('COM port not connected');
+  end;
 end;
 
 // =====================================  
@@ -147,6 +152,7 @@ begin
   reply := '';
   newstr := true;
   RxStr := '';
+  err_cnt := 0;
   try
     PortOk := true;
     ComPort.Open;
