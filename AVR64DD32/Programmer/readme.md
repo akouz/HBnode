@@ -1,4 +1,4 @@
-Programmer is used to download application code or compiled Arduino sketch into HBnode. Programmer is based on Arduino UNO, it runs the dedicated programmer sketch and it interacts with PC software named HEXloader.exe.
+Programmer is used to download application code or compiled Arduino sketch into HBnode. Programmer is based on Arduino UNO, it runs the dedicated programmer sketch HEXloader.ino and it interacts with PC software named HEXloader.exe.
 
 Progrubber is no able to program bootloader.
 
