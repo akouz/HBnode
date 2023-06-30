@@ -8,3 +8,6 @@ The following commands implemented:
 Serial number and text strings are stored in EEPROM.
 
 ![PuTTY session](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Sketches/test_monitor/PuTTY_session.png)
+
+
+WARNING! For currently unknown reason this sketch malfunctions. After few user's entries, monitor refuses to recognise commands. 
