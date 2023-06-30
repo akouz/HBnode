@@ -5,4 +5,4 @@ The following commands implemented:
   * NAME - sets or reads device name
   * LOCATION - sets oe reads device location
 Serial number and text strings stored in EEPROM.
-(PuTTY session)[https://github.com/akouz/HBnode/blob/main/AVR64DD32/Sketches/test_monitor/PuTTY_session.png]
+![PuTTY session](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Sketches/test_monitor/PuTTY_session.png)
