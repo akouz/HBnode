@@ -39,8 +39,7 @@
 // Var
 //##############################################################################
 
-I2Cbb i2cbb;          // I2C bit-bang to access FT200XD test jig and EEPROM
-Mon mon;
+char buf[0x22];
 
 struct{
     uchar cnt;    
@@ -121,7 +120,7 @@ void Mon::print_sn(void)
     char str[0x20];
     if ((this->sn == 0x7FFF) || (this->sn == 0))
     {
-        i2cbb.println("No S/N");    
+        i2cbb.println("S/N is not assigned");    
     }
     else
     {
@@ -140,7 +139,11 @@ uchar Mon::print_unit_name(void)
         i2cbb.println(this->str[0]); 
         return OK;
     }    
-    return ERR;
+    else
+    {
+        i2cbb.println("Unit name not assigned");        
+        return ERR;
+    }
 }
 // =============================================
 uchar Mon::print_unit_location(void)
@@ -151,7 +154,11 @@ uchar Mon::print_unit_location(void)
         i2cbb.println(this->str[1]); 
         return OK;
     }    
-    return ERR;
+    else
+    {
+        i2cbb.println("Unit location not specified");        
+        return ERR;
+    }
 }
 // =============================================
 // Read FT200XD to rx buffer
@@ -316,7 +323,6 @@ uchar Mon::parse(void)
     uint i;
     pstate.flag.all = 0;
     pstate.cnt = 0;
-    char buf[0x22];
     buf[0] = 0;
     if (this->cr_lf)
     {
@@ -370,21 +376,35 @@ void Mon::rdwr_sn(void)
     // ----------------------
     if (this->param.val_cnt > 0) 
     {
-        if (i2cbb.EE_busy)
-        {
-            print_EE_busy();   
-            return;
-        }
-        this->sn = this->param.val[0]; // use first param as S/N
-        for (i=0; i<4; i++)
-        {
-            buf[i] = (uchar)(this->param.val[0] >> 8*(3-i)); // MSB goes first
-        }
-        i2cbb.write_EE(buf, 4, 4); // S/N stored at addr 4
         this->sn &= 0x7FFF;        
-        i2cbb.print("S/N ");
-        i2cbb.print((int)this->sn);
-        i2cbb.println(" stored"); 
+        if ((this->sn == 0) || (this->sn == 0x7FFF) || (this->param.val[0] == 0))
+        {
+            if (i2cbb.EE_busy)
+            {
+                print_EE_busy();   
+                return;
+            }
+            this->sn = this->param.val[0]; // use first param as S/N
+            for (i=0; i<4; i++)
+            {
+                buf[i] = (uchar)(this->param.val[0] >> 8*(3-i)); // MSB goes first
+            }
+            i2cbb.write_EE(buf, 4, 4); // S/N stored at addr 4            
+            i2cbb.print("S/N ");
+            if (this->sn)
+            {
+                i2cbb.print(this->sn);
+                i2cbb.println(" stored"); 
+            }
+            else
+            {
+                i2cbb.println("erased"); 
+            }
+        }
+        else
+        {
+            i2cbb.println("Ignored, current S/N is not blank");
+        }
     }
     // ----------------------
     // print S/N
@@ -399,7 +419,6 @@ void Mon::rdwr_sn(void)
 // =============================================
 void Mon::rdwr_str(uchar ii)
 {
-    char res;
     uint addr;
     uchar len, idx;
     if ((ii < NAME_) || (ii > LOCATION_))
@@ -414,32 +433,39 @@ void Mon::rdwr_str(uchar ii)
     // ----------------------
     if (this->param.str[0])    
     {        
-        if (i2cbb.EE_busy)
+        if ((this->str[idx][0] == 0) || ((this->param.str[0] == '-') && (this->param.str[1] == 0)))
         {
-            print_EE_busy();   
-            return;
-        }
-        len = (uchar)strlen(this->param.str);   
-        len = (len > 0x1F)? 0x1F : len; 
-        if ((this->param.str[0] == '-') && (this->param.str[1] == 0)) // '-' clears string
-        {
-            len = 2;
-            this->param.str[0] = 0; // string is blank
-        }
-        this->param.str[len] = 0;
-        i2cbb.write_EE((uchar*)this->param.str, addr, len+1); 
-        strcpy(this->str[idx], this->param.str);
-        if (this->param.str[0] == 0)
-        {
-            i2cbb.println("String erased");
+            if (i2cbb.EE_busy)
+            {
+                print_EE_busy();   
+                return;
+            }
+            len = (uchar)strlen(this->param.str);   
+            len = (len > 0x1F)? 0x1F : len; 
+            if ((this->param.str[0] == '-') && (this->param.str[1] == 0)) // '-' clears string
+            {
+                len = 2;
+                this->param.str[0] = 0; // string is blank
+            }
+            this->param.str[len] = 0;
+            i2cbb.write_EE((uchar*)this->param.str, addr, len+1); 
+            strcpy(this->str[idx], this->param.str);
+            if (this->param.str[0] == 0)
+            {
+                i2cbb.println("String erased");
+            }
+            else
+            {
+                i2cbb.print("String ");
+                i2cbb.print('"');
+                i2cbb.print(this->param.str);
+                i2cbb.print('"');
+                i2cbb.println(" stored");
+            }
         }
         else
         {
-            i2cbb.print("String ");
-            i2cbb.print('"');
-            i2cbb.print(this->param.str);
-            i2cbb.print('"');
-            i2cbb.println(" stored");
+            i2cbb.println("Ignored, current string is not blank");
         }
     }  
     // ----------------------
@@ -452,17 +478,13 @@ void Mon::rdwr_str(uchar ii)
         switch(ii)
         {
         case NAME_: 
-            res = this->print_unit_name();
+            this->print_unit_name();
             break;
         case LOCATION_: 
-            res = this->print_unit_location();
+            this->print_unit_location();
             break;
         default:
             break;                              
-        }
-        if (OK != res)
-        {
-            i2cbb.println("not defined or invalid");
         }
     }  
 }

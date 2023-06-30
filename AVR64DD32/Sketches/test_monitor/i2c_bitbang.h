@@ -73,6 +73,6 @@ class I2Cbb{
         uchar print_ulong(ulong val, uchar crlf);
         uchar print_int(int val, uchar crlf);
 };
-
+extern I2Cbb i2cbb;
 
 #endif	/* __I2C_BITBANG_H */

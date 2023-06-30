@@ -26,11 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "config.h"
 #include "monitor.h"
 
+
 //##############################################################################
 // Var
 //##############################################################################
 
 Coos <6, 0> coos;     // create coos with up to 6 tasks, tick is irrelevant
+
+Mon mon;
 
 
 //##############################################################################

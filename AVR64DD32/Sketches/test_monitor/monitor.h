@@ -94,8 +94,6 @@ class Mon{
         uchar txbuf_len;
         uchar cr_lf;
 };        
-
-extern I2Cbb i2cbb;
 extern Mon mon;
 
 #endif /* __MONITOR_H */
