@@ -1,4 +1,4 @@
-A simple monitor works via FT200XD and a hyperterminal. It uses Fort-like reverse polish notation, eg command goes last. Commands are not case sensitive.
+A simple monitor works via FT200XD and a hyperterminal. Monitor uses Forth-like reverse polish notation, eg command goes last. Commands are not case sensitive.
 The following commands implemented:
   * REV - prints sketch name and revision
   * SN - sets or reads serial number
