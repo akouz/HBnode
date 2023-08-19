@@ -1,6 +1,6 @@
 # HBnode AVR64DD32
 
-Small modules based on AVR64DD32 are supposed to be used in HBus project instead of Arduino Pro Mini and Arduino Nano. They have the same size and similar pin-out, but differs by the following:
+Small modules based on AVR64DD32 are supposed to be used in [HBus](https://github.com/akouz/HBus) project instead of Arduino Pro Mini and Arduino Nano. They have the same size and similar pin-out, but differs by the following:
 
 -- Program memory 64K instead of 32K.
 
