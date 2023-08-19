@@ -1,4 +1,4 @@
-![Pro Mini](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Hardware/HBnode-rev-1-0.jpg)
+![Pro Mini](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Hardware/Pro_mini/HBnode-rev-1-0.jpg)
 
 Connector P4 for UPDI programmer/debugger, such as PicKit4. Bootloader can be programmed via P4.
 
