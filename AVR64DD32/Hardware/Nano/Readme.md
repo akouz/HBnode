@@ -1,6 +1,6 @@
 HBnode Nano board is similar to HBnode Pro Mini. 
 
-![Nano](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Hardware/Pro_mini/HBnode_nano_rev_1_0.jpg)
+![Nano](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Hardware/Nano/HBnode_nano_rev_1_0.jpg)
 
 Connector P4 for UPDI programmer/debugger. To program bootloader I used MPLAB X rev 6.05 and PicKit4.
 
