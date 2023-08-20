@@ -44,6 +44,7 @@
 // rev 1.5 - bug fix
 // rev 1.6 - bug fix, alco comment and guid removed
 // rev 1.7 - bug fix, also to assign new name, location or S/N, erase them first
+// rev 1.8 - bug fix, make text replies more user-friendly
 
 //##############################################################################
 // Def
@@ -54,11 +55,11 @@
 // ==================================
 #define SKETCH_NAME   "test_monitor.ino"
 #define SW_REV_MAJ    1
-#define SW_REV_MIN    7
+#define SW_REV_MIN    8
 
 #define SW_REV  (0x100*SW_REV_MAJ + SW_REV_MIN)
 
-#pragma message("rev 1.7")
+#pragma message("rev 1.8")
 
 #ifndef __UCHAR_DEFINED__
   #define __UCHAR_DEFINED__
