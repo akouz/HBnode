@@ -95,6 +95,10 @@ Mon::Mon(void)
     {
         i2cbb.read_EE((uchar*)this->str[i], addr, 0x20);     
         this->str[i][0x20] = 0;
+        if ((this->str[i][0] <= ' ') || (this->str[i][0] >= 0x80)) // if first char is not printable ASCII
+        {
+            this->str[i][0] = 0;       // then make string blank
+        }          
         addr += 0x20;
     }
 }
@@ -133,7 +137,7 @@ void Mon::print_sn(void)
 // =============================================
 uchar Mon::print_unit_name(void)
 {
-    if ((this->str[0][0]) && ((uchar)this->str[0][0] < 0xFF))
+    if ((this->str[0][0] > ' ') && ((uchar)this->str[0][0] < 0x80)) // first char must be printable ASCII
     {
         i2cbb.print("Unit name: ");
         i2cbb.println(this->str[0]); 
@@ -148,7 +152,7 @@ uchar Mon::print_unit_name(void)
 // =============================================
 uchar Mon::print_unit_location(void)
 {
-    if ((this->str[1][0]) && ((uchar)this->str[1][0] < 0xFF))
+    if ((this->str[1][0] > ' ') && ((uchar)this->str[1][0] < 0x80)) // first char must be printable ASCII
     {
         i2cbb.print("Unit location: ");
         i2cbb.println(this->str[1]); 
@@ -404,6 +408,7 @@ void Mon::rdwr_sn(void)
         else
         {
             i2cbb.println("Ignored, current S/N is not blank");
+            i2cbb.println("To erase S/N type '- sn' ");
         }
     }
     // ----------------------
@@ -427,6 +432,7 @@ void Mon::rdwr_str(uchar ii)
         return;
     }
     idx = ii - NAME_;           // string index
+    idx &= 1;                   // so far only 2 strings exists    
     addr = 0x20 + 0x20*idx;     // strings offset 0x20, strings length 0x20
     // ----------------------
     // write string
@@ -456,16 +462,26 @@ void Mon::rdwr_str(uchar ii)
             }
             else
             {
-                i2cbb.print("String ");
-                i2cbb.print('"');
+                i2cbb.print("String '");
                 i2cbb.print(this->param.str);
-                i2cbb.print('"');
-                i2cbb.println(" stored");
+                i2cbb.println("' stored");
             }
         }
         else
         {
             i2cbb.println("Ignored, current string is not blank");
+            i2cbb.print("To erase string type '- ");
+            switch(ii)
+            {
+            case NAME_: 
+                i2cbb.println("name'"); 
+                break;
+            case LOCATION_: 
+                i2cbb.println("location'"); 
+                break;
+            default: 
+                break;
+            }
         }
     }  
     // ----------------------

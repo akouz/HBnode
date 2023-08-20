@@ -87,7 +87,7 @@ class Mon{
         void  parse_blank_char(char* buf);
         slong dval = 0;             // decimal number
         ulong hval = 0;             // hex number
-        char  str[2][22];           // name, location
+        char  str[2][0x22];         // name, location
         char  rxbuf[MON_RX_BUF];
         uchar rxbuf_len;
         char  txbuf[MON_TX_BUF];

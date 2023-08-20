@@ -90,7 +90,7 @@ void coos_task1(void)
   }
 }
 // ========================================
-// Task 2 runs every 1 ms
+// Task 2 runs every 1 ms - monitor
 // ========================================
 void coos_task2(void)
 {
@@ -107,36 +107,8 @@ void coos_task2(void)
       cnt = 0;
       if (OK == mon.Rx()) // when command string ready
       {
-/*        
-        i2cbb.print(mon.parse());
-        i2cbb.print(" words, ");
-        i2cbb.print(mon.param.val_cnt);
-        i2cbb.print(" values: ");
-        for (uchar i=0; i<mon.param.val_cnt; i++)
-        {
-          if (mon.param.val_t[i] == VAL_T_INT)
-          {
-            i2cbb.print((int)mon.param.val[i]);  
-          }
-          else
-          {
-            i2cbb.print("0x");
-            i2cbb.print((uint)mon.param.val[i]);  
-          }
-          i2cbb.print(", ");
-        }
-        if (mon.param.str[0])
-        {
-          i2cbb.print("string=");
-          i2cbb.print(mon.param.str);
-          i2cbb.print(", ");
-        }
-        i2cbb.print("cmd=");
-        i2cbb.println(mon.param.cmd);
-*/        
         mon.parse();
         mon.exe();
-        // i2cbb.println((uint)freeRam());
       }
     }
   }
@@ -156,9 +128,10 @@ void clock_func(void)
 void setup()
 {
   i2cbb.println();
-  i2cbb.println("==============");
-  i2cbb.println("=== HBnode ===");
-  i2cbb.println("==============");
+  i2cbb.println();
+  i2cbb.println("======================");
+  i2cbb.println("=== HBnode monitor ===");
+  i2cbb.println("======================");
   mon.print_rev();
   mon.print_sn();
   mon.print_unit_name();
@@ -167,7 +140,7 @@ void setup()
   
   pinMode(RLED, OUTPUT);
   pinMode(GLED, OUTPUT);
-  digitalWrite(GLED, HIGH); 
+  digitalWrite(GLED, HIGH);         // green LED off
   coos.register_clock(clock_func);  // register clock function
   coos.register_task(coos_task0);   // register task 0   
   coos.register_task(coos_task1);   // register task 1
