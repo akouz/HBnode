@@ -51,7 +51,15 @@ int freeRam()
   return (int)&v - (__brkval == 0  ? (int)&__heap_start : (int) __brkval);  
 }
 */
-
+// ========================================
+// Setup clock
+// ========================================
+void set_xtal_24MHz(void)
+{
+    CCP = IOREG;                  // unlock
+    CLKCTRL.XOSCHFCTRLA = 0xA9;   // xtal 24 MHz
+    CLKCTRL.MCLKCTRLA = 0x03;     // EXTCLK, no clockout
+}
 // ========================================
 // Task 0 toggles led every 0.5 sec
 // ========================================
@@ -127,6 +135,7 @@ void clock_func(void)
 // ========================================
 void setup()
 {
+  set_xtal_24MHz();
   i2cbb.println();
   i2cbb.println();
   i2cbb.println("======================");

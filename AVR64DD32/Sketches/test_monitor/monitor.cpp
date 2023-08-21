@@ -62,8 +62,8 @@ const char cmd_list[MON_CMD][10] = {
     {"SN"},    
     {"NAME"},    
     {"LOCATION"},    
-    {"COMMENT"},    
-    {"GUID"},    
+    {"CLK"},    
+    {""},    
     {""},    
     {""},    
     {""},    
@@ -505,6 +505,66 @@ void Mon::rdwr_str(uchar ii)
     }  
 }
 // =============================================
+// Debug clock
+// =============================================
+void Mon::dbg_clock(void)
+{
+    uchar res = ERR;
+    if (this->param.val_cnt == 2) // value and reg No
+    {
+        switch(this->param.val[1] & 7)
+        {
+        case 0: 
+            CCP = IOREG;              // unlock
+            CLKCTRL.MCLKCTRLA = (uchar)this->param.val[0];
+            res = OK;    
+            break;
+        case 1:
+            CCP = IOREG;              // unlock
+            CLKCTRL.MCLKCTRLB = (uchar)this->param.val[0];
+            res = OK;    
+            break;
+        case 2:
+            CCP = IOREG;              // unlock
+            CLKCTRL.MCLKCTRLC = (uchar)this->param.val[0];
+            res = OK;    
+            break;
+        case 3:
+            CCP = IOREG;              // unlock
+            CLKCTRL.OSCHFCTRLA = (uchar)this->param.val[0];
+            res = OK;    
+            break;
+        case 4:
+            CCP = IOREG;              // unlock
+            CLKCTRL.XOSCHFCTRLA = (uchar)this->param.val[0];
+            res = OK; 
+            break;   
+        default:
+            break;
+        }
+    }
+    else 
+    {
+        res = OK; 
+    }
+    if (res == OK) // print regs
+    {
+        i2cbb.println("CLKCTRL");
+        i2cbb.print("  MCLKCTRLA = ");   
+        i2cbb.println((uchar)CLKCTRL.MCLKCTRLA);
+        i2cbb.print("  MCLKCTRLB = ");   
+        i2cbb.println((uchar)CLKCTRL.MCLKCTRLB);
+        i2cbb.print("  MCLKCTRLC = ");   
+        i2cbb.println((uchar)CLKCTRL.MCLKCTRLC);
+        i2cbb.print("  OSCHFCTRLA = ");   
+        i2cbb.println((uchar)CLKCTRL.OSCHFCTRLA);
+        i2cbb.print("  XOSCHFCTRLA = ");   
+        i2cbb.println((uchar)CLKCTRL.XOSCHFCTRLA);    
+        i2cbb.print("  MCLKSTATUS = ");
+        i2cbb.println((uchar)CLKCTRL.MCLKSTATUS);
+    }
+}
+// =============================================
 // Find command
 // =============================================
 char Mon::find_cmd(void)
@@ -539,6 +599,9 @@ uchar Mon::exe(void)
             case NAME_:
             case LOCATION_:
                 this->rdwr_str(cmd);
+                break;
+            case CLK_:
+                this->dbg_clock();
                 break;
             default:
                 i2cbb.println("REV, [n] SN, [txt] NAME, [txt] LOCATION"); // list of commands

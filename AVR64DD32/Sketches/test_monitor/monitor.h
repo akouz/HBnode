@@ -51,6 +51,7 @@ enum{
     SN_         = 2,
     NAME_       = 3,
     LOCATION_   = 4,
+    CLK_        = 5,
 };
 
 //##############################################################################
@@ -83,6 +84,7 @@ class Mon{
         char  find_cmd(void);  
         void  rdwr_sn(void);        // set or read S/N
         void  rdwr_str(uchar ii);   // set or read device name or location
+        void  dbg_clock(void);      // debug clock
         void  parse_notblank_char(char cc, char* buf);
         void  parse_blank_char(char* buf);
         slong dval = 0;             // decimal number
