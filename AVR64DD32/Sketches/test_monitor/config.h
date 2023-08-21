@@ -45,6 +45,7 @@
 // rev 1.6 - bug fix, alco comment and guid removed
 // rev 1.7 - bug fix, also to assign new name, location or S/N, erase them first
 // rev 1.8 - bug fix, make text replies more user-friendly
+// rev 1.9 - debug clock, new monitor command CLK
 
 //##############################################################################
 // Def
@@ -55,11 +56,11 @@
 // ==================================
 #define SKETCH_NAME   "test_monitor.ino"
 #define SW_REV_MAJ    1
-#define SW_REV_MIN    8
+#define SW_REV_MIN    9
 
 #define SW_REV  (0x100*SW_REV_MAJ + SW_REV_MIN)
 
-#pragma message("rev 1.8")
+#pragma message("rev 1.9")
 
 #ifndef __UCHAR_DEFINED__
   #define __UCHAR_DEFINED__
@@ -78,6 +79,8 @@
 #define ERR     0xEE  
 #define CR      13
 #define LF      10  
+
+#define IOREG   0xD8    // to unlock protected I/O regs
   
 #define BIT0    0x01  
 #define BIT1    0x02
