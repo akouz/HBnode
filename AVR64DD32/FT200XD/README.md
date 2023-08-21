@@ -1,3 +1,3 @@
-Test jig based on [FT200XD](https://ftdichip.com/products/ft200xd/) chip. Jig connected to 5-pin P4 header via 4-pin jack; P4 pin 1 not used.
+Test jig based on [FT200XD](https://ftdichip.com/products/ft200xd/) chip. Jig connected to HBnode 5-pin header P4 via 4-pin jack J2. P4 pin 1 not used; J2 pin 1 connects to P4 pin 2.
 
 ![Jig_connected](https://github.com/akouz/HBnode/blob/main/AVR64DD32/FT200XD/FT200XD_jig_connected.jpg)
