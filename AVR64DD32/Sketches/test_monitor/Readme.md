@@ -11,4 +11,5 @@ Serial number and text strings are stored in EEPROM.
 ![PuTTY session](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Sketches/test_monitor/PuTTY_session.png)
 
 CLK command added in rev 1.9:
+
 ![CLK command](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Sketches/test_monitor/PuTTY_session_rev_1_9.png)
