@@ -56,31 +56,10 @@ enum{
 
 class HB_cmd{
   public:
-                HB_cmd(void);
-    union{
-        uint all;
-        struct{
-            unsigned    rev         : 1;
-            unsigned    status      : 1;
-            unsigned    collect     : 1;
-            unsigned    ping        : 1;
-            unsigned    boot        : 1;
-            unsigned    rddescr     : 1;
-            unsigned    wrdescr     : 1;
-            unsigned    customcmd   : 1;
-            unsigned    topic       : 1;
-            unsigned    rdsecurity  : 1;
-            unsigned    ignore_ts   : 1;    // ignore time stamp mismatch for encrypted messages
-            unsigned                : 2;    // not used
-            unsigned                : 3;    // not used here, those flags are for MQTT mode
-        };
-    } allow;    // allowed unecrypted access
-    uint        ignore_traffic;                 // in 10 ms ticks
+        HB_cmd(void);
     hb_msg_t*   process_rx_cmd(hb_msg_t* rxmsg);
     void        set_custom_cmd(hb_msg_t* (*c_cmd)(hb_msg_t* msg));
     void        tick10ms(void);
-    void        read_own_ID(void);
-    void        read_security(uchar key_valid);
 
   private:
     union{
@@ -89,7 +68,9 @@ class HB_cmd{
     }msg;
     uchar       rply_tmout;
     uint        ignore_collect;         // in 10 ms ticks
-    hb_msg_t cmd_reply;
+    hb_msg_t    cmd_reply;
+    void        prep_rply_hdr(hb_msg_t* rxmsg, hb_msg_t* rply, uchar okerr);
+    void        read_security(uchar key_valid);
     uchar       rply_unknown(hb_msg_t* rxmsg, hb_msg_t* rply);
     uchar       rply_rev(hb_msg_t* rxmsg, hb_msg_t* rply);
     uchar       rply_status(hb_msg_t* rxmsg, hb_msg_t* rply);
@@ -97,7 +78,6 @@ class HB_cmd{
     uchar       rply_ping(hb_msg_t* rxmsg, hb_msg_t* rply);
     uchar       rply_setID(hb_msg_t* rxmsg, hb_msg_t* rply);
     uchar       rply_boot(hb_msg_t* rxmsg, hb_msg_t* rply);
-    void        alien_boot(hb_msg_t* rxmsg);
     uchar       rply_beep(hb_msg_t* rxmsg, hb_msg_t* rply);
     uchar       rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply);
     uchar       rply_security(hb_msg_t* rxmsg, hb_msg_t* rply);

@@ -76,6 +76,7 @@ class HB_cipher{
         HB_cipher(void);
         uchar   valid;
         void    get_EE_key(void);
+        void    encrypt_EEkeys(void);
         void    encrypt(uchar* buf, uint len);
         void    decrypt(uchar* buf, uint len);
         c_union16_t    key;

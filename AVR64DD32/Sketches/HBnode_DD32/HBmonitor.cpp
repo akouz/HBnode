@@ -34,7 +34,10 @@
 //##############################################################################
 
 #include "HBmonitor.h"
-
+#include "HBcmd.h"
+#include "HBmqtt.h"
+#include "HBcipher.h"
+#include "i2c_bitbang.h"
 
 //##############################################################################
 
@@ -51,6 +54,12 @@ enum{
     NAME_       = 4,
     LOCATION_   = 5,
     DESCR_      = 6,
+    ALLOW_      = 7, 
+    EERD_       = 8,
+    EEWR_       = 9,
+    EECLR_      = 10,
+    EECRC_      = 11,
+    RESET_      = 12,
 };
 
 //##############################################################################
@@ -82,6 +91,12 @@ const char cmd_list[MON_CMD][10] = {
     {"NAME"},    
     {"LOCATION"},    
     {"DESCR"},    
+    {"ALLOW"},    
+    {"EERD"},    
+    {"EEWR"},    
+    {"EECLR"},    
+    {"EECRC"},    
+    {"RESET"},    
     {""},    
     {""},    
     {""},    
@@ -107,6 +122,17 @@ void Mon::begin(void)
 {
     uchar buf[0x20];    
     uchar offs;
+    for (uint i=0; i<10; i++)
+    {
+        if (i2cbb.EE_busy)
+        {
+            delay(1);
+        }
+        else
+        {
+            break;
+        }
+    }
     this->reset_param();
     this->rxbuf_len = 0;
     this->txbuf_len = 0;
@@ -151,45 +177,33 @@ void Mon::begin(void)
     // -----------------------------
     // strings
     // -----------------------------
-    i2cbb.read_EE((uchar*)node.name_str, EE_NAME_STR, MAX_SSTR);    // string
-    node.name_str[MAX_SSTR-1] = 0;                                  // ensure
-    if ((node.name_str[0] < ' ') || (node.name_str[0] >= 0x80))     // if first char is not printable ASCII
-    {
-        node.name_str[0] = 0;       // then make string blank
-    }
-    i2cbb.read_EE((uchar*)node.location_str, EE_LOCATION_STR, MAX_LSTR);    // string
-    node.location_str[MAX_LSTR-1] = 0;                                      // ensure
-    if ((node.location_str[0] < ' ') || (node.location_str[0] >= 0x80))     // if first char is not printable ASCII
-    {
-        node.location_str[0] = 0;   // then make string blank
-    }
+    i2cbb.read_EE((uchar*)node.name_str, EE_NAME_STR, MAX_SSTR);        // string
+    node.name_str[MAX_SSTR-1] = 0;                                      // ensure
+    //-------------------------
+    i2cbb.read_EE((uchar*)node.location_str, EE_LOCATION_STR, MAX_LSTR);        // string
+    node.location_str[MAX_LSTR-1] = 0;                                          // ensure
+    //-------------------------
     i2cbb.read_EE((uchar*)node.descr_str, EE_DESCR_STR, MAX_LSTR);      // string
     node.descr_str[MAX_LSTR-1] = 0;                                     // ensure
-    if ((node.descr_str[0] < ' ') || (node.descr_str[0] >= 0x80))       // if first char is not printable ASCII
-    {
-        node.descr_str[0] = 0;       // then make string blank
-    }
 }
 // =============================================
 // Print project name, sketch file name and revision
 // =============================================
 void Mon::print_rev(void)
 {
-    i2cbb.print("Project ");
-    i2cbb.print_in_quotes(PROJECT_NAME);
-    i2cbb.print(", module ");
+    PRINT("Module ");
     i2cbb.print_in_quotes(ARDUINO_MODULE);
-    i2cbb.print(", hw rev ");
-    i2cbb.print(HW_REV_MAJ);
-    i2cbb.print('.');
-    i2cbb.println(HW_REV_MIN);
+    PRINT(", hw rev ");
+    PRINT(HW_REV_MAJ);
+    PRINT('.');
+    PRINTLN(HW_REV_MIN);
     // -----------------------
-    i2cbb.print("Sketch ");
+    PRINT("Sketch ");
     i2cbb.print_in_quotes(SKETCH_NAME);
-    i2cbb.print(", rev ");
-    i2cbb.print(SW_REV_MAJ);
-    i2cbb.print('.');
-    i2cbb.println(SW_REV_MIN);
+    PRINT(", rev ");
+    PRINT(SW_REV_MAJ);
+    PRINT('.');
+    PRINTLN(SW_REV_MIN);
 }
 // =============================================
 // Print S/N
@@ -199,7 +213,7 @@ void Mon::print_sn(void)
     char str[0x20];
     if ((node.sn[1] < 0 ) || (node.sn[0] < 0 ) || (node.SN == 0))
     {
-        i2cbb.println("S/N not assigned");    
+        PRINTLN("S/N not assigned");    
     }
     else
     {
@@ -211,7 +225,7 @@ void Mon::print_sn(void)
         {
             sprintf(str,"Node S/N %d.%04d", node.sn[1],  node.sn[0]);        
         }
-        i2cbb.println(str);
+        PRINTLN(str);
     }
 }
 // =============================================
@@ -221,52 +235,54 @@ void Mon::print_id(void)
 {
     char str[0x20];
     sprintf(str,"nodeID 0x%04X", node.ID);        
-    i2cbb.println(str);
+    PRINTLN(str);
 }    
 // =============================================
 // Print strings
 // =============================================
 uchar Mon::print_node_name(void)
 {
-    if ((node.name_str[0] >= ' ') && ((uchar)node.name_str[0] < 0x80)) // first char must be printable ASCII
+    if (vld_char(node.name_str[0]))   
     {
-        i2cbb.print("Node name: ");
-        i2cbb.println(node.name_str); 
+        PRINT("Node name: ");
+        PRINTLN(node.name_str); 
         return OK;
     }    
     else
     {
-        i2cbb.println("Node name not assigned");   
+        PRINTLN("Node name not assigned");   
         return ERR;
     }
 }
 // =============================================
 uchar Mon::print_node_location(void)
 {
-    if ((node.location_str[0] >= ' ') && ((uchar)node.location_str[0] < 0x80)) // first char must be printable ASCII
+    if (vld_char(node.location_str[0])) // first char must be printable ASCII
     {
-        i2cbb.print("Location: ");
-        i2cbb.println(node.location_str); 
+        PRINT("Location: ");
+        PRINTLN(node.location_str); 
         return OK;
     }    
     else
     {
-        i2cbb.println("Location not specified");        
+        PRINTLN("Location not specified");        
         return ERR;
     }
 }
 // =============================================
 uchar Mon::print_node_descr(void)
 {
-    if ((node.descr_str[0] >= ' ') && ((uchar)node.descr_str[0] < 0x80)) // first char must be printable ASCII
+    if (vld_char(node.descr_str[0])) // first char must be printable ASCII
     {
-        i2cbb.print("Description: ");
-        i2cbb.println(node.descr_str); 
+        PRINT("Description: ");
+        PRINTLN(node.descr_str); 
         return OK;
     }    
     else
     {
-        i2cbb.println("No description");        
+        PRINT((uchar)node.name_str[0]);
+        PRINT('-');
+        PRINTLN("No description");        
         return ERR;
     }
 }
@@ -291,24 +307,24 @@ uchar Mon::Rx(void)
                 if (this->rxbuf_len)
                 {
                     this->rxbuf[this->rxbuf_len--] = 0; 
-                    i2cbb.print(cc);
+                    PRINT(cc);
                 }
                 else if (cc == CHAR_BS)
                 {
-                    i2cbb.print(' ');
+                    PRINT(' ');
                 }
             }
             else if ((cc >= ' ') && (this->rxbuf_len < MON_RX_BUF))
             {
                 this->rxbuf[this->rxbuf_len++] = cc;
-                i2cbb.print(cc);
+                PRINT(cc);
             }
             if ((this->rxbuf_len >= MON_RX_BUF-2) || (cc == CHAR_CR) || (cc == CHAR_LF) || (cc == 0))
             {
                 this->rxbuf[this->rxbuf_len++] = ' ';
                 this->rxbuf[this->rxbuf_len] = 0;
                 this->cr_lf = 1;                
-                i2cbb.println();
+                PRINTLN();
                 break; 
             }
         }
@@ -496,32 +512,32 @@ uchar Mon::parse(void)
         }
     }
 /* debug
-    i2cbb.print(res);
-    i2cbb.print(" words,");
+    PRINT(res);
+    PRINT(" words,");
     if (this->param.str)
     {        
-        i2cbb.print((uint)this->param.str);
-        i2cbb.print(" str='");
-        i2cbb.print((char*)this->param.str);
-        i2cbb.print("', ");
+        PRINT((uint)this->param.str);
+        PRINT(" str='");
+        PRINT((char*)this->param.str);
+        PRINT("', ");
     }
     else
     {
-        i2cbb.print(" str='' ");
+        PRINT(" str='' ");
     }
     if (this->param.cmd)
     {
-        i2cbb.print((uint)this->param.cmd);
-        i2cbb.print(" cmd='");
-        i2cbb.print((char*)this->param.cmd);
-        i2cbb.println("'");
+        PRINT((uint)this->param.cmd);
+        PRINT(" cmd='");
+        PRINT((char*)this->param.cmd);
+        PRINTLN("'");
     }        
     else
     {
-        i2cbb.print((uint)this->rxbuf);
-        i2cbb.print(", rxbuf_len=");
-        i2cbb.print(this->rxbuf_len);
-        i2cbb.println(", cmd=''");
+        PRINT((uint)this->rxbuf);
+        PRINT(", rxbuf_len=");
+        PRINT(this->rxbuf_len);
+        PRINTLN(", cmd=''");
     }
   */
     this->rxbuf_len = 0;    // reset Rx buffer
@@ -532,7 +548,7 @@ uchar Mon::parse(void)
 // =============================================
 void print_EE_busy(void)
 {
-    i2cbb.println("==> ERROR: EEPROM busy, try again later");
+    PRINTLN("==> ERROR: EEPROM busy, try again later");
 }
 // =============================================
 // Set or read S/N
@@ -567,26 +583,26 @@ void Mon::rdwr_sn(void)
                 buf[i] = (uchar)(node.SN >> (8*(3-i))); // MSB goes first
             }
             i2cbb.write_EE(buf, EE_SN, 4); 
-            i2cbb.print("S/N ");
+            PRINT("S/N ");
             if (node.SN)
             {
                 if (node.sn[1])
                 {
-                    i2cbb.print((int)node.sn[1]);
-                    i2cbb.print('.');
+                    PRINT((int)node.sn[1]);
+                    PRINT('.');
                 }                
-                i2cbb.print((int)node.sn[0]);
-                i2cbb.println(" stored"); 
+                PRINT((int)node.sn[0]);
+                PRINTLN(" stored"); 
             }
             else
             {
-                i2cbb.println("erased"); 
+                PRINTLN("erased"); 
             }
         }
         else
         {
-            i2cbb.println("Ignored, current S/N is not blank");
-            i2cbb.println("To erase S/N set it to 0");
+            PRINTLN("Ignored, current S/N is not blank");
+            PRINTLN("To erase S/N set it to 0");
         }
     }
     // ----------------------
@@ -619,22 +635,22 @@ void Mon::rdwr_id(void)
             buf[0] = (uchar)(this->param.val[0] >> 8);  // MSB goes first
             buf[1] = (uchar)this->param.val[0];         // LSB
             i2cbb.write_EE(buf, EE_nodeID, 2);          // store nodeID           
-            i2cbb.print("nodeID ");
+            PRINT("nodeID ");
             if (node.ID)
             {
-                i2cbb.print("0x");
-                i2cbb.print(node.ID);
-                i2cbb.println(" stored"); 
+                PRINT("0x");
+                PRINT(node.ID);
+                PRINTLN(" stored"); 
             }
             else
             {
-                i2cbb.println("erased"); 
+                PRINTLN("erased"); 
             }
         }
         else
         {
-            i2cbb.println("Ignored, current nodeID is not blank");
-            i2cbb.println("To erase nodeID set it to 0");
+            PRINTLN("Ignored, current nodeID is not blank");
+            PRINTLN("To erase nodeID set it to 0");
         }
     }
     // ----------------------
@@ -668,7 +684,7 @@ void Mon::rdwr_str(uchar ii)
         str = node.descr_str; 
         break;
     default:
-        i2cbb.print("==> ERROR: wrong params");
+        PRINT("==> ERROR: wrong params");
         return;             // error
         break;
     }
@@ -678,7 +694,11 @@ void Mon::rdwr_str(uchar ii)
     // write string
     // ----------------------
     if (this->param.str)    
-    {        
+    {       
+        if (str[0] == 0xFF) 
+        {
+            str[0] = 0;
+        }
         if ((str[0] == 0) || ((this->param.str[0] == '-') && (this->param.str[1] == 0))) 
         {
             if (i2cbb.EE_busy)
@@ -698,29 +718,29 @@ void Mon::rdwr_str(uchar ii)
             strcpy(str, this->param.str);
             if (this->param.str[0] == 0)
             {
-                i2cbb.println("String erased");
+                PRINTLN("String erased");
             }
             else
             {
-                i2cbb.print("String '");
-                i2cbb.print(this->param.str);
-                i2cbb.println("' stored");
+                PRINT("String '");
+                PRINT(this->param.str);
+                PRINTLN("' stored");
             }
         }
         else // string not erased
         {
-            i2cbb.println("Ignored, current string is not blank");
-            i2cbb.print("To erase string type '-");
+            PRINTLN("Ignored, current string is not blank");
+            PRINT("To erase string type '-");
             switch(ii)
             {
             case NAME_: 
-                i2cbb.println(" name'"); 
+                PRINTLN(" name'"); 
                 break;
             case LOCATION_: 
-                i2cbb.println(" location'"); 
+                PRINTLN(" location'"); 
                 break;
             case DESCR_: 
-                i2cbb.println(" descr'"); 
+                PRINTLN(" descr'"); 
                 break;
             default: 
                 break;
@@ -755,17 +775,181 @@ void Mon::rdwr_str(uchar ii)
     }  
 }
 // =============================================
+// Read/write node.allow
+// =============================================
+void Mon::HBallow(void)
+{
+    // ----------------
+    // write
+    // ----------------
+    if (this->param.val_cnt)
+    {
+        node.allow.all = (uint)this->param.val[0]; 
+    }
+    // ----------------
+    // read
+    // ----------------
+    PRINT("node.allow = 0x");
+    PRINT(node.allow.all);
+    PRINT(", HBcipher.valid = ");
+    if (HBcipher.valid) 
+    {
+        PRINTLN("true");
+    }
+    else
+    {
+        PRINTLN("false"); 
+    }
+}
+// =============================================
+// Read EEPROM
+// =============================================
+void Mon::EErd(void)
+{
+    uint addr = 0;
+    uchar cnt = 1;
+    uchar buf[0x80];
+    if (this->param.val_cnt)
+    {
+        addr = (uint)this->param.val[0];
+    }
+    if (this->param.val_cnt > 1)
+    {
+        cnt = (uchar)this->param.val[1];
+        if (cnt>0x80)
+        {
+            cnt = 0x80;        
+        }            
+    }
+    i2cbb.read_EE(buf, addr, cnt);
+    for (uchar i=0; i<cnt; i++)
+    {  
+        if (((addr + i) & 0x0F) == 0)
+        {
+            PRINTLN();
+            PRINT((uint)(addr + i));
+            PRINT(": ");
+        }
+        if (((addr + i) & 0xFFF0) == EE_XTEA_KEY) // do not print EEPROM key
+        {
+            PRINT("XX");
+        }
+        else
+        {
+            PRINT(buf[i]);
+        }        
+        PRINT(' ');
+        if ((i & 0x0F) == 7)
+        {
+            PRINT(' ');
+        }
+    }
+    PRINTLN();
+ }    
+// =============================================
+// Write to EEPROM
+// =============================================
+void Mon::EEwr(void)
+{
+    if (this->param.val_cnt > 1)
+    {
+        uint addr = (uint)this->param.val[0];
+        uchar bb = (uchar)this->param.val[1];
+        i2cbb.write_EE(&bb, addr, 1);
+        PRINTLN("Done");
+    }
+    else
+    {
+        PRINTLN(" Error: no data, no address");
+    }
+}    
+// =============================================
+// Clear EEPROM
+// =============================================
+void Mon::EEclr(void)
+{
+    if (this->param.val_cnt > 1)
+    {
+        uint addr = (uint)this->param.val[0];
+        uchar len = (uchar)this->param.val[1];
+        if (len > 0x40)
+        {
+            len = 0x40;
+        }    
+        if (len)    
+        {
+            i2cbb.write_EE(NULL, addr, len);
+        }    
+        PRINTLN("Done");
+    }
+    else
+    {
+        PRINTLN(" Error: no len, no address");
+    }
+}    
+// =============================================
+// Calculate EEPROM crc
+// =============================================
+void Mon::EEcrc(void)
+{
+    uint crc = 0xFFFF;
+    uint rcrc, codelen;
+    uchar buf[0x10];
+    i2cbb.read_EE(buf, 0x0010, 8);
+    buf[8] = 0;
+    codelen = ((uint)buf[4] << 8) + buf[5];
+    rcrc = ((uint)buf[6] << 8) + buf[7];
+    // i2cbb.println(buf, 8);
+    PRINT(codelen);
+    PRINT(' ');
+    PRINT(rcrc);
+    PRINT('-');
+    crc = i2cbb.crc_EE(codelen);
+    PRINTLN(crc);
+}
+// =============================================
+// Soft reset
+// =============================================
+void Mon::reset(void)
+{
+    if (this->param.val_cnt == 0)
+    {
+        CCP = IOREG;                // unlock
+        RSTCTRL.SWRR = 1;           // software reset
+    }
+    else
+    {
+        if ((uint)this->param.val[0] == 0)
+        {
+            CCP = IOREG;            // unlock
+            WDT.CTRLA = 1;          // WDT reset in 7.8 ms
+        }
+        else // fill descriptor
+        {
+            uchar buf[4];
+            buf[0] = 0x55;
+            buf[1] = 0xAA;
+            buf[2] = 0xC3;
+            buf[3] = 0x3C;
+            i2cbb.write_EE(buf, 0x10, 4);
+        }
+    }
+}  
+     
+// =============================================
 // Find command
 // =============================================
 char Mon::find_cmd(void)
 {
-    if (this->param.cmd)
+    char def[2] = {'?', 0};
+    if ((this->param.cmd == NULL) || (this->param.cmd[0] == 0))
     {
-        for (uchar i=0; i<MON_CMD; i++)
-        {
-            if (strcmp(this->param.cmd, cmd_list[i]) == 0)
-                return i;
-        }
+        this->param.cmd = def; // default
+    }
+    for (uchar i=0; i<MON_CMD; i++)
+    {
+        if (strcmp(this->param.cmd, cmd_list[i]) == 0)
+            return i;
     }
     return -1;
 }    
@@ -795,21 +979,39 @@ uchar Mon::exe(void)
             case DESCR_:
                 this->rdwr_str(cmd);
                 break;
+            case ALLOW_:
+                this->HBallow();
+                break;
+            case EERD_:
+                this->EErd();
+                break;
+            case EEWR_:
+                this->EEwr();
+                break;
+            case EECLR_:
+                this->EEclr();
+                break;
+            case EECRC_:
+                this->EEcrc();
+                break;
+            case RESET_:
+                this->reset();
+                break;
             default:
-                i2cbb.println("REV, [n] SN,  [n] nodeID, [txt] NAME, [txt] LOCATION, [txt] DESCR"); // list of commands
+                PRINTLN("REV, [n] SN, [n] nodeID, [txt] NAME, [txt] LOCATION, [txt] DESCR, [addr, len] EERD, [addr, len] EECLR"); // list of commands
                 break;
         }
     }
     else
     {
-        i2cbb.print("==> ERROR: unknown command '");
+        PRINT("==> ERROR: unknown command '");
         if (this->param.cmd)
         {
-            i2cbb.print(this->param.cmd);
+            PRINT(this->param.cmd);
         }
-        i2cbb.println("'");
+        PRINTLN("'");
     }
-    i2cbb.print("MON> ");
+    PRINT("MON> ");
     this->reset_param();
     return res;
 }    

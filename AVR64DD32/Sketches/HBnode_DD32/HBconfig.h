@@ -45,7 +45,12 @@
 // rev 0.6 - bug fix in backspace handling
 // rev 0.7 - modified monitor parser
 // rev 0.8 - eliminate mon.param string buffers
-// rev 0.9 - bug fixes, can talk to HBus
+// rev 0.9 - can talk to HBus
+// rev 0.10 - new implementation of HB_cmd::rply_boot, other changes in HBcmd.cpp
+// rev 0.11 - use '-' to erase strings
+// rev 0.12 - monitor commands EErd, EEwr EEclr
+// rev 0.13 - wip, security settings
+// rev 0.14 - can download sketches via HBus, but reset by RSTCTRL.SWRR = 1 does not work
 
 //##############################################################################
 // Def
@@ -61,7 +66,7 @@
 #define HW_REV_MIN    0
 #define SKETCH_NAME   "HBnode_DD32.ino"
 #define SW_REV_MAJ    0
-#define SW_REV_MIN    9
+#define SW_REV_MIN    14
 
 #define SW_REV  (0x100*SW_REV_MAJ + SW_REV_MIN)
 

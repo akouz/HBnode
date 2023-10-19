@@ -80,17 +80,6 @@ union mq_value_uni{
 class HB_mqtt{
     public:
         HB_mqtt(void);
-        union{
-            uint all;
-            struct{
-                unsigned                : 10;   // not used here, those flags for HBus mode
-                unsigned    ignore_ts   : 1;    // ignore time stamp mismatch for encrypted messages
-                unsigned                : 2;    // not used
-                unsigned    publish     : 1;    // can read unencrypted PUBLISH
-                unsigned    reg         : 1;    // can read unencrypted REGISTER
-                unsigned    broadcast   : 1;    // broadcast unencrypted PUBLISH and REGISTER
-            };
-        } allow;    // allowed unecrypted access
         hb_msg_t  mqmsg;
         union mq_flag_uni   flag[MAX_TOPIC];                // set of flags
         uchar       validate_topics(void);

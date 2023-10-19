@@ -23,10 +23,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  * 
- * ----------------------------------------------
- * 
- * Read/write I2C EEPROM 24LC512 connected to pins PC2 (SCL) and PD1 (SDA)
- * 
  */
 
 //##############################################################################
@@ -34,7 +30,6 @@
 //##############################################################################
 
 #include "i2c_bitbang.h"
-
 
 //##############################################################################
 // Var
@@ -55,7 +50,6 @@ I2Cbb::I2Cbb(void)
     PORTC.OUTCLR = BIT2;    // clear PC2 output latch
     PORTD.OUTCLR = BIT1;    // clear PD1 output latch
 }    
-
 // ============================================
 // Stop
 // ============================================
@@ -134,6 +128,38 @@ uchar I2Cbb::rbyte(uchar nack)
     return res;
 }
 // ============================================
+// Calculate CRC for code in EEPROM starting from address 0x0400
+// ============================================
+uint I2Cbb::crc_EE(uint codelen)
+{
+    uchar buf[0x40];
+    uint crcx = 0xFFFF;
+    uint addr = 0x0400;
+    uchar chunk;
+    for (uint i=0; i<2048; i++) 
+    {
+        chunk = (codelen >= 0x40)? 0x40 : (uchar)codelen;
+        if (chunk)
+        {
+            this->read_EE(buf, addr, chunk);
+            codelen -= chunk;
+            addr += chunk;
+            for (uchar j=0; j<chunk; j++)
+            {
+//                crcx = crc_add_uchar(buf[j], crcx);
+                crcx ^= (uint)buf[j] << 8;
+                for (uchar k=0; k<8; k++)
+                {
+                    crcx = (crcx & 0x8000)? ((crcx << 1) ^ 0x1021) : (crcx << 1);
+                }
+            }
+        } 
+        else
+            break;       
+    }
+    return crcx;
+}
+// ============================================
 // Read EEPROM to buffer
 // ============================================
 uchar I2Cbb::read_EE(uchar* buf, uint adrr, uint len) 
@@ -179,11 +205,22 @@ uchar I2Cbb::write_EE(uchar* buf, uint adrr, uchar len)
             this->sbyte((uchar)adrr);         // byte addr, lsb
             for (i=0; i<len; i++)
             {
-                if (0 != this->sbyte(buf[i]))
+                if (buf == NULL)
                 {
-                    res = ERR;
-                    break;
-                } 
+                    if (0 != this->sbyte(0xFF))  // erase
+                    {
+                        res = ERR;
+                        break;
+                    } 
+                }
+                else
+                {
+                    if (0 != this->sbyte(buf[i]))
+                    {
+                        res = ERR;
+                        break;
+                    } 
+                }   
             }  
         }    
         this->stop();
@@ -192,7 +229,6 @@ uchar I2Cbb::write_EE(uchar* buf, uint adrr, uchar len)
     }
     return res;
 }        
-
 // ============================================
 // Hex nibble to char
 // ============================================

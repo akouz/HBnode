@@ -45,7 +45,6 @@ enum{
 
 void hbus_msg_to_mqtt(hb_msg_t* msg);
 void coos_task_HBus_rxtx(void);
-void coos_task_tick1ms(void);
 
 
 #endif /* __HBUS_H */

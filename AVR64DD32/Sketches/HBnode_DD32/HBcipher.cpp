@@ -77,6 +77,24 @@ HB_cipher::HB_cipher(void)
 }
 
 // ===================================================
+// Encrypt EEPROM keys
+// ===================================================
+void HB_cipher::encrypt_EEkeys(void)
+{
+    this->valid = 0; // EEPROM cipher considered as invalid is all bytes are equal to 0xFF (eg EEPROM is blank)
+    for (uchar i=0; i<16; i++)
+    {
+        if (this->key.uch[i] != 0xFF)
+        {
+            this->valid = 1;
+            break;
+        }
+    }
+    this->encrypt8(13, this->key.uch, (ulong*)flashkey);    // encrypt first half of EEPROM key using flash key
+    this->encrypt8(17, this->key.uch+8, (ulong*)flashkey);  // encrypt second half
+}
+
+// ===================================================
 // Read EEPROM key
 // ===================================================
 void HB_cipher::get_EE_key(void)
@@ -87,19 +105,11 @@ void HB_cipher::get_EE_key(void)
     this->key.ulo[2] = EE_KEY3;
     this->key.ulo[3] = EE_KEY4;
     this->valid = 1;
+    PRINTLN("Cipher uses default EEPROM key");
 #else
-    uchar all0 = 0;
-    uchar allFF = 0;
     i2cbb.read_EE( this->key.uch, EE_XTEA_KEY, 16);
-    for (uchar i=0; i<16; i++)
-    {
-        (this->key.uch[i] == 0) ? all0++ : all0 = 0;
-        (this->key.uch[i] == 0xFF) ? allFF++ : allFF = 0;
-    }
-    this->valid = ((all0 == 16) || (allFF == 16)) ?  0 : 1;
 #endif
-    encrypt8(13, this->key.uch, (ulong*)flashkey);    // encrypt first half of EEPROM key using flash key
-    encrypt8(17, this->key.uch+8, (ulong*)flashkey);  // encrypt second half
+    this->encrypt_EEkeys();
 }
 
 // ===================================================
@@ -185,10 +195,10 @@ void HB_cipher::decrypt8(uchar rounds, uchar* buf, ulong* kp)
 // ===================================================
 void HB_cipher::encrypt(uchar* buf, uint len)
 {
-    encrypt8(ROUNDS, buf, this->key.ulo);  // first 8 bytes encrypted by XTEA
+    this->encrypt8(ROUNDS, buf, this->key.ulo);  // first 8 bytes encrypted by XTEA
     for (uint i=8; i<len; i++)
     {
-        buf[i] ^= gamma();    // the rest encrypted by LFSR
+        buf[i] ^= this->gamma();    // the rest encrypted by LFSR
     }
 }
 
@@ -197,10 +207,10 @@ void HB_cipher::encrypt(uchar* buf, uint len)
 // ===================================================
 void HB_cipher::decrypt(uchar* buf, uint len)
 {
-    decrypt8(ROUNDS, buf, this->key.ulo);
+    this->decrypt8(ROUNDS, buf, this->key.ulo);
     for (uint i=8; i<len; i++)
     {
-        buf[i] ^= gamma();
+        buf[i] ^= this->gamma();
     }
 }
 

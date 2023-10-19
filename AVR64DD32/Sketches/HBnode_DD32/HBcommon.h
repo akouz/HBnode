@@ -41,10 +41,12 @@
 // Def
 //##############################################################################
 
+#define PRINT(x)      i2cbb.print(x)
+#define PRINTLN(x)    i2cbb.println(x)
+
 #define DBG_PRINT(x)      i2cbb.print(x)
 #define DBG_PRINTLN(x)    i2cbb.println(x)
 #define BUF_PRINTLN(x,y)  i2cbb.println(x,y)
-
 
 #define MAX_BUF       0x90
 #define MAX_SSTR      0x20
@@ -66,6 +68,7 @@
 #define BIT7    0x80  
   
 #define NOP()   asm("nop") 
+#define Nop()   asm("nop") 
 
 // ==================================
 // enum
@@ -99,6 +102,7 @@ enum{
     NOT_READY       = 0,
 
     OK              = 0,
+    OK1             = 1,
     SKIP            = 2,
     ERR             = 0xEE,
     ERR_BUSY        = 0xE0,
@@ -109,6 +113,8 @@ enum{
     ERR_SECURITY    = 0xE5,
     ERR_TMOUT       = 0xE6,
     ERR_TYPE        = 0xE7,
+    ERR_NOT_EMPTY   = 0xE8,
+    ERR_CRC         = 0xE9,
 
     // ------------------------------------
     // EEPROM addresses (max size 1024 = 0x400 bytes)
@@ -119,9 +125,9 @@ enum{
     EE_SN           = 0x40,     // serial number
     EE_nodeID       = 0x48,     // own NodeId
     EE_TZ           = 0x4C,     // time zone
-    EE_SECURITY     = 0x60,     // access control settings
-    EE_SECURITY_INV = 0x62,     // inverted access control settings
-    EE_XTEA_KEY     = 0x64,     // XTEA cipher key, 16 bytes
+    EE_SECURITY     = 0x5C,     // access control settings
+    EE_SECURITY_INV = 0x5E,     // inverted access control settings
+    EE_XTEA_KEY     = 0x60,     // XTEA cipher key, 16 bytes
     EE_TOPIC_ID     = 0x80,     // own TopicIds, 2-bytes each, up to 32 topics
     EE_NAME_STR     = 0x100,    // name c-string, up to 63 chars
     EE_LOCATION_STR = 0x140,    // location c-string, up to 63 chars
@@ -177,6 +183,8 @@ typedef struct{
 // Var
 //##############################################################################
 
+extern const char* modules_list[];
+
 struct node_struct{
   uint seed;                // random seed
   uint pup_cnt;             // power-up count
@@ -192,10 +200,31 @@ struct node_struct{
   char name_str[MAX_SSTR];  
   char location_str[MAX_LSTR];  
   char descr_str[MAX_LSTR];     // description
+  union{
+      uint all;
+      struct{
+          unsigned    rev         : 1;  
+          unsigned    status      : 1;
+          unsigned    collect     : 1;
+          unsigned    ping        : 1;
+          unsigned    boot        : 1;  
+          unsigned    rddescr     : 1;
+          unsigned    wrdescr     : 1;
+          unsigned    customcmd   : 1;                    
+          unsigned    topic       : 1;  
+          unsigned    rdsecurity  : 1;
+          unsigned    ignore_ts   : 1;    // ignore time stamp mismatch for encrypted messages
+          unsigned                : 2;
+          unsigned    publish     : 1;    // can read unencrypted PUBLISH
+          unsigned    reg         : 1;    // can read unencrypted REGISTER
+          unsigned    broadcast   : 1;    // broadcast unencrypted PUBLISH and REGISTER
+      };
+  } allow;    // allowed unecrypted access
+  uchar rst_cnt;        // 10 ms ticks, reset when changed from 1 to 0
+  uint led_cnt;         // until LED switched off, in 10 ms ticks
+  uchar pause_cnt;
 };
 extern struct node_struct node;
-
-extern uint led_cnt;
 
 extern StaticJsonBuffer<128> jsonBuf;
 extern Coos <COOS_TASKS, 0> coos;    // 1 ms ticks
@@ -207,6 +236,8 @@ extern Coos <COOS_TASKS, 0> coos;    // 1 ms ticks
 
 
 void blink(uint dur);
+
+uchar vld_char(char c);
 
 uchar print_val(uchar val, uchar i);
 void print_buf(const char* name, hb_msg_t* msg);
@@ -229,8 +260,6 @@ uchar finish_txmsg(hb_msg_t* txmsg);
 
 uchar ts_valid(hb_msg_t* rxmsg);
 uchar sort(uint* arr, uint len);
-
-
 
 
 #endif /* __HB_COMMON_H */

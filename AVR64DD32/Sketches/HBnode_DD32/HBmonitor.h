@@ -39,7 +39,7 @@
 
 #define MON_RX_BUF  0x60
 #define MON_TX_BUF  0x80
-#define MON_CMD     10
+#define MON_CMD     0x10
 
 
 //##############################################################################
@@ -67,6 +67,7 @@ class Mon{
         uchar   print_node_name(void);
         uchar   print_node_location(void);
         uchar   print_node_descr(void);
+        void    HBallow(void);      // set or read node.allow 
         uchar   Rx(void);           // receive chars to buffer
         uchar   parse(void);        // parse buffer
         uchar   exe(void);          // execute command
@@ -78,7 +79,11 @@ class Mon{
         void  rdwr_sn(void);        // set or read S/N
         void  rdwr_id(void);        // set or read nodeID
         void  rdwr_str(uchar ii);   // set or read device name or location
-        void  dbg_clock(void);      // debug clock
+        void  EErd(void);
+        void  EEwr(void);
+        void  EEclr(void);
+        void  EEcrc(void);
+        void  reset(void);
         void  parse_notblank_char(char cc, char* buf);
         void  parse_blank_char(char* buf);
         slong dval = 0;             // decimal number

@@ -251,9 +251,9 @@ uchar HB_mqtt::rd_msg(hb_msg_t* msg)
     // ------------------------------------
     // PUBLISH messages
     // ------------------------------------
-    if ((mt == MT_PUBLISH) && ((msg->encrypt) || (allow.publish)))
+    if ((mt == MT_PUBLISH) && ((msg->encrypt) || (node.allow.publish)))
     {
-        if ((this->allow.ignore_ts) || (msg->ts_ok) || (!msg->encrypt))  // timestamp
+        if ((node.allow.ignore_ts) || (msg->ts_ok) || (!msg->encrypt))  // timestamp
         {
             this->MsgID_cnt = (this->MsgID_cnt < 0xFFFFFFFF)? this->MsgID_cnt+1 : 1;
             if (tid >= 0x20) // it is a user-defined topic
@@ -331,9 +331,9 @@ uchar HB_mqtt::rd_msg(hb_msg_t* msg)
     // ------------------------------------
     // REGISTER messages
     // ------------------------------------
-    if ((mt == MT_REGISTER) && (msg->buf[8]) && ((msg->encrypt) || (allow.reg)))
+    if ((mt == MT_REGISTER) && (msg->buf[8]) && ((msg->encrypt) || (node.allow.reg)))
     {
-        if ((this->allow.ignore_ts) || (msg->ts_ok) || (!msg->encrypt))  // timestamp
+        if ((node.allow.ignore_ts) || (msg->ts_ok) || (!msg->encrypt))  // timestamp
         {
             this->MsgID_cnt = (this->MsgID_cnt < 0xFFFFFFFF)? (this->MsgID_cnt+1) : 1;
             msg->buf[msg->len] = 0;   // make 0-terminated string
@@ -404,7 +404,7 @@ uchar HB_mqtt::make_msg_register(uchar ti)
         copy_topic(ti, buf);    // topic name
         add_txmsg_z_str(&this->mqmsg, buf);
         finish_txmsg(&this->mqmsg);
-        this->mqmsg.encrypt = (allow.broadcast)? 0 : 1;   // can send unencrypted?
+        this->mqmsg.encrypt = (node.allow.broadcast)? 0 : 1;   // can send unencrypted?
         this->mqmsg.hb = 0;
         this->mqmsg.valid = 1;
         return OK;
@@ -465,7 +465,7 @@ uchar HB_mqtt::make_msg_publish(uint tid, uchar* buf, uchar len)
             add_txmsg_uchar(&mqmsg, '}');
         }
         finish_txmsg(&mqmsg);
-        mqmsg.encrypt = (allow.broadcast)? 0 : 1;   // can send unencrypted?
+        mqmsg.encrypt = (node.allow.broadcast)? 0 : 1;   // can send unencrypted?
         mqmsg.hb = 0;
         mqmsg.valid = 1;
         return OK;
@@ -653,7 +653,7 @@ hb_msg_t* HB_mqtt::publish_own_val(uint idx)
             mbuf[len] = 0;
             add_txmsg_z_str(&mqmsg, mbuf);              // add mbuf as a z-string to HBus message
             finish_txmsg(&mqmsg);                       // finish message to HBus
-            mqmsg.encrypt = (allow.broadcast)? 0 : 1;   // can send unencrypted?
+            mqmsg.encrypt = (node.allow.broadcast)? 0 : 1;   // can send unencrypted?
             mqmsg.hb = 0;
             mqmsg.valid = 1;
             return &mqmsg;

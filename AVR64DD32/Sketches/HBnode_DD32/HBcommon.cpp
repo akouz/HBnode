@@ -39,7 +39,10 @@ StaticJsonBuffer <128> jsonBuf;
 
 Coos <COOS_TASKS, 0> coos;  // declare cooperative operating system
 
-uint led_cnt;     // until LED switched off, in 10 ms ticks
+const char str_mini_pro[] = "Mini Pro";
+const char str_nano[] = "Nano";
+
+const char* modules_list[] = {str_mini_pro, str_nano};
 
 //##############################################################################
 // Func
@@ -50,7 +53,7 @@ uint led_cnt;     // until LED switched off, in 10 ms ticks
 // =============================================
 void blink(uint dur) // 10ms ticks
 {
-    led_cnt = dur;
+    node.led_cnt = dur;
     digitalWrite(RLED, HIGH);
 }
 
@@ -78,6 +81,17 @@ uchar print_val(uchar val, uchar i)
 #else
     return 0;
 #endif
+}
+
+// =============================================
+// Validate char
+// =============================================
+uchar vld_char(char c)
+{
+    if (((uchar)c < CHAR_TAB) || ((uchar)c == 0xFF))
+        return 0;
+    else
+        return 1;
 }
 
 // =====================================
@@ -188,7 +202,7 @@ uint crc_add_uchar(uchar b, uint crcx)
     crcx ^= (uint)b << 8;
     for (uchar j=0; j<8; j++)
     {
-        crcx = (crcx & 0x8000)? (0xFFFF & ((crcx << 1) ^ 0x1021)) : (0xFFFF & (crcx << 1));
+        crcx = (crcx & 0x8000)? ((crcx << 1) ^ 0x1021) : (crcx << 1);
     }
     return crcx;
 }

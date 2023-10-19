@@ -36,7 +36,6 @@
 // Var
 //##############################################################################
 
-uchar hb_pause_cnt;
 
 //##############################################################################
 // Func
@@ -49,7 +48,7 @@ void clr_rx(void)
 {
     while (Serial1.available())
     {
-        hb_pause_cnt = 0;
+        node.pause_cnt = 0;
         Serial1.read();  // clear
     }
 }
@@ -88,11 +87,9 @@ void coos_task_HBus_rxtx(void)
         // -----------------------------------------------
         while (Serial1.available())
         {
-            hb_pause_cnt = 0;
+            node.pause_cnt = 0;
             val = Serial1.read();
-            // DBG_PRINT((uchar)val);
-            // DBG_PRINT(' ');
-            if ((HBcmd.ignore_traffic == 0) && (val >= 0))
+            if (val >= 0)
             {
                 // --------------------------------------
                 // if message completed and crc matched
@@ -100,7 +97,6 @@ void coos_task_HBus_rxtx(void)
                 rxmsg = HBrxtx.rx((uchar)val);
                 if (rxmsg)
                 {
-                    DBG_PRINTLN(" rxmsg OK");
                     if (HBrxtx.flag.seed == 0) // first received message
                     {
                         HBrxtx.flag.seed = 1;
@@ -121,11 +117,6 @@ void coos_task_HBus_rxtx(void)
                     if (rxmsg->hb)
                     {
                         txmsg = HBcmd.process_rx_cmd(rxmsg);
-                        if (txmsg)
-                        {
-                            DBG_PRINTLN(" txmsg");
-                            BUF_PRINTLN(txmsg->buf, txmsg->len);
-                        }
                         // --------------------------
                         // if reply required
                         // --------------------------
@@ -136,7 +127,6 @@ void coos_task_HBus_rxtx(void)
                         HBrxtx.rtr_cnt = 0;
                         while (txmsg)
                         {
-                            digitalWrite(RLED, HIGH);
                             // -----------------
                             // postpone transmission in first run
                             // -----------------
@@ -158,7 +148,7 @@ void coos_task_HBus_rxtx(void)
                                 // ------------
                                 tmout = 0;
                                 HBrxtx.priority = 0xFF;
-                                while (hb_pause_cnt < 2)
+                                while (node.pause_cnt < 2)
                                 {
                                     COOS_DELAY(1);
                                     clr_rx();           // receiver must be empty
@@ -172,8 +162,9 @@ void coos_task_HBus_rxtx(void)
                                 // ------------
                                 // transmit and check echo
                                 // ------------
-                                if ((txmsg) && (hb_pause_cnt >= 2))
+                                if ((txmsg) && (node.pause_cnt >= 2))
                                 {
+                                    digitalWrite(RLED, LOW);
                                     res = HBrxtx.start_tx(txmsg);
                                     if (OK == res)
                                     {
@@ -182,7 +173,7 @@ void coos_task_HBus_rxtx(void)
                                         while (NOT_READY == res)
                                         {
                                             COOS_DELAY(1);
-                                            res = HBrxtx.tx(&hb_pause_cnt);
+                                            res = HBrxtx.tx(&node.pause_cnt);
                                             if (++tmout > 200)  // time-out 200 ms
                                             {
                                                 finish_tx(txmsg);
@@ -206,7 +197,7 @@ void coos_task_HBus_rxtx(void)
                                 } // if pause on the bus
                             } // if txmsg
                         } // while txmsg
-                        digitalWrite(RLED, LOW);
+                        digitalWrite(RLED, HIGH);
                     } // if HBus message
                     // --------------------------------
                     // process received MQTT message
@@ -242,7 +233,7 @@ void coos_task_HBus_rxtx(void)
                 {
                     tmout = 0;
                     HBrxtx.priority = 0xFF;
-                    while (hb_pause_cnt < 2)
+                    while (node.pause_cnt < 2)
                     {
                         COOS_DELAY(1);
                         clr_rx();           // receiver must be empty
@@ -253,7 +244,7 @@ void coos_task_HBus_rxtx(void)
                             break;
                         }
                     }
-                    if ((txmsg) && (hb_pause_cnt >= 2))
+                    if ((txmsg) && (node.pause_cnt >= 2))
                     {
                         if (OK == HBrxtx.start_tx(txmsg))
                         {
@@ -262,7 +253,7 @@ void coos_task_HBus_rxtx(void)
                             while (NOT_READY == res)
                             {
                                 COOS_DELAY(1);
-                                res = HBrxtx.tx(&hb_pause_cnt);
+                                res = HBrxtx.tx(&node.pause_cnt);
                                 if (++tmout > 200)
                                 {
                                     finish_tx(txmsg);
@@ -291,27 +282,5 @@ void coos_task_HBus_rxtx(void)
         } // if mqmsg.valid
     }
 }
-
-// =============================================================================
-// Task: tick 1 ms
-// =============================================================================
-void coos_task_tick1ms(void)
-{
-    static uchar cnt;
-    while(1)
-    {
-        COOS_DELAY(1);
-        if (hb_pause_cnt < 200)
-        {
-            hb_pause_cnt++;
-        }
-        if (++cnt >= 10)
-        {
-            cnt = 0;
-            HBcmd.tick10ms();
-        }
-    }
-}
-
 
 /* EOF */
