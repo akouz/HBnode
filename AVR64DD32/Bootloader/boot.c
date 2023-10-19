@@ -100,9 +100,9 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
     // Initialize system for AVR GCC support, expects r1 = 0 
     asm volatile("clr r1");
     
-    asm("cli");    //disable interrupts
-    GPR.GPR0 = RSTCTRL.RSTFR; // store reset flags    
-    
+    CCP = IOREG;                // unlock
+    WDT.CTRLA = 0x0A;           // WDT reset in 4 sec    
+        
     init_i2c();
     if (OK == i2c_read(eebuf, 0x10, 8))     // read descriptor: 8 bytes starting from addr 0x10
     {
@@ -113,6 +113,7 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
         adr = APPCODE_ADDR;                 // byte addr
         if (OK == check_pattern(eebuf))     // if pattern matched
         {
+            asm("cli");    //disable interrupts
             SET_LED;
             cnt = 0;
             dat = 0;
@@ -148,12 +149,18 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
                         break;
                 }    
                 wait_flash();
+                asm("wdr");         // reset watchdog    
             }    
             // -----------------------
             // clear descriptor and reset
             // -----------------------
-            i2c_write(NULL, 0x10, 4);      // clear descriptor in EEPROM
-            RSTCTRL.SWRR = 1;   // software reset    
+            i2c_write(NULL, 0x10, 4);   // clear descriptor in EEPROM
+            CCP = IOREG;                // unlock
+            WDT.CTRLA = 2;              // WDT reset in 15 ms
+            while(1)
+            {
+                NOP();
+            }    
         } // if pattern matches    
     }
 #ifdef DEBUG_BOOT    
@@ -182,8 +189,9 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
         NOP();
     }    
 #else    
-    RSTCTRL.RSTFR = 0;       // clear reset flags
-    asm("jmp 0x0400");  
+    CCP = IOREG;        // unlock
+    WDT.CTRLA = 0;      // WDT off
+    asm("jmp 0x0400");  // jump to application
 #endif    
 }
 

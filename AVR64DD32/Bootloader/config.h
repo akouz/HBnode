@@ -30,6 +30,7 @@
  * rev 0.3      - bootloader fits in 1K
  * rev 0.4      - tune-up
  * rev 1.0      - debugged
+ * rev 1.1      - bug fix, added CCP = IOREG
  */
 
 #ifndef __CONFIG_H
@@ -79,6 +80,8 @@
 #define ERR     0xEE  
 #define CR      13
 #define LF      10  
+  
+#define IOREG   0xD8    // unlock key  
   
 #define BIT0    0x01  
 #define BIT1    0x02
