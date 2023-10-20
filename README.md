@@ -17,3 +17,4 @@ Microcontroller boards for [HBus](https://github.com/akouz/HBus) based on [AVR64
 2. Load HBus sketch.
    Connect HBnode to the [programmer](https://github.com/akouz/HBnode/tree/main/AVR64DD32/Programmer) and transfer selected sketch to the HBnode using [HEXLoader](https://github.com/akouz/HBnode/tree/main/AVR64DD32/Programmer/Software)
    
+3. When a correct sketch is programmed to the HBnode, a new sketch can be loaded to the board via HBus using [NodeTest](https://github.com/akouz/HBus/tree/master/NodeTest)
