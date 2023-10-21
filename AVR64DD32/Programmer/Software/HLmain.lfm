@@ -1,9 +1,9 @@
 object Form1: TForm1
-  Left = 1082
+  Left = 1037
   Height = 490
-  Top = 139
+  Top = 257
   Width = 661
-  Caption = 'HEXloader rev 1.2'
+  Caption = 'HEXloader rev 1.4'
   ClientHeight = 490
   ClientWidth = 661
   OnClose = FormClose
@@ -54,9 +54,9 @@ object Form1: TForm1
       Text = 'COM1'
     end
     object BtnSendBuf: TButton
-      Left = 288
+      Left = 416
       Height = 25
-      Top = 22
+      Top = 24
       Width = 115
       Caption = 'Send to EEPROM'
       Enabled = False
@@ -104,7 +104,7 @@ object Form1: TForm1
     object BtnQuery: TButton
       Left = 416
       Height = 25
-      Top = 24
+      Top = 62
       Width = 101
       Caption = 'BtnQuery'
       OnClick = BtnQueryClick
@@ -128,9 +128,9 @@ object Form1: TForm1
       ParentColor = False
     end
     object BtnSetLow: TButton
-      Left = 160
+      Left = 416
       Height = 25
-      Top = 38
+      Top = 48
       Width = 96
       Caption = 'BtnSetLow'
       OnClick = BtnSetLowClick
@@ -138,9 +138,9 @@ object Form1: TForm1
       Visible = False
     end
     object BtnSetHi: TButton
-      Left = 152
+      Left = 312
       Height = 25
-      Top = 16
+      Top = 0
       Width = 109
       Caption = 'BtnSetHi'
       OnClick = BtnSetHiClick

@@ -66,7 +66,7 @@
     <Linking>
       <Debugging>
         <GenerateDebugInfo Value="False"/>
-        <UseLineInfoUnit Value="False"/>
+        <UseValgrind Value="True"/>
       </Debugging>
       <Options>
         <Win32>

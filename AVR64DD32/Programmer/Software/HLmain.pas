@@ -65,6 +65,7 @@ type
     TabCtrl: TTabControl;
     Timer1: TTimer;
     Timer2: TTimer;
+    procedure BtnCRCClick(Sender: TObject);
     procedure BtnFileClick(Sender: TObject);
     procedure BtnQueryClick(Sender: TObject);
     procedure BtnRqRevClick(Sender: TObject);
@@ -87,6 +88,7 @@ type
     addr_min, addr_max, wraddr, prev_wraddr, codecnt : integer;
     bootbuf : array [0..$1000] of byte;     // boot only
     boot_min, boot_max, bootcnt : integer;
+    buf_crc : word;
     HF : TStringList;
     Sent : TStringList;
     rxtx : THLxtx;
@@ -205,6 +207,7 @@ begin
             ParseLB;
             s := 'Address range [0x'+IntToHex(addr_min,4)+'..0x'+ IntToHex(addr_max,4)+'], ';
             s := s + IntToStr(codecnt) + ' bytes loaded';
+            s := s + ', crc = 0x'+ IntToHex(buf_crc,4);
             LblAddr.Caption := s;
           end;
         end;
@@ -353,12 +356,12 @@ begin
     end;
   end;
   s := '!04001001';    // header
-  len := addr_max - addr_min;
+  len := addr_max - addr_min + 1;
   s := s + IntToHex(len, 4);
   cs := 4+$10+1+byte(len shr 8) + byte(len); // code length
-  crc := CodeBufCRC(len);
-  s := s + IntToHex(crc, 4);
-  cs := cs + byte(crc shr 8) + byte(crc);
+//  crc := CodeBufCRC(len);
+  s := s + IntToHex(buf_crc, 4);
+  cs := cs + byte(buf_crc shr 8) + byte(buf_crc);
   cs := (cs xor $FF) +1;
   s := s + IntToHex(cs,2);
   Sent.Add(s);
@@ -765,7 +768,7 @@ end;
 // Parse ListBox
 //================================================
 function TForm1.ParseLB: boolean;
-var i : integer;
+var i, len : integer;
     s : string;
 begin
   result := true;
@@ -775,6 +778,8 @@ begin
     if result = false then
       break;
   end;
+  len := addr_max - addr_min;
+  buf_crc := CodeBufCRC(len);
 end;
 
 //================================================
@@ -789,6 +794,7 @@ begin
   ParseLB;
   s := 'Address range [0x'+IntToHex(addr_min,4)+'..0x'+ IntToHex(addr_max,4)+'], ';
   s := s + IntToStr(codecnt) + ' bytes loaded';
+  s := s + ', crc = 0x'+ IntToHex(buf_crc,4);
   LblAddr.Caption := s;
   BtnSendBuf.Enabled:=true;
 end;
@@ -810,6 +816,16 @@ begin
     FileName := OpenDialog.FileName;
     OpenFile(FileName);
   end;
+end;
+
+//================================================
+// Calculate CRC
+//================================================
+procedure TForm1.BtnCRCClick(Sender: TObject);
+var len : integer;
+begin
+  len := addr_max - addr_min;
+  buf_crc := CodeBufCRC(len);
 end;
 
 //================================================
