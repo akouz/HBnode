@@ -3,10 +3,7 @@ Microcontroller boards for [HBus](https://github.com/akouz/HBus) based on [AVR64
 
 [Programmer HEXloader.exe](https://github.com/akouz/HBnode/tree/main/AVR64DD32/Programmer/Software) can transfer compiled hex files from PC to EEPROM via Arduino UNO running [sketch HEXloader.ino](https://github.com/akouz/HBnode/tree/main/AVR64DD32/Programmer/Sketch). When a board used in HBus network, firmware can be updated remotely via HBus.
 
-![Pro Mini](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Hardware/Pro_mini/HBnode-rev-1-0.jpg)
-
-![Nano](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Hardware/Nano/HBnode_nano_rev_1_0.jpg)
-
+![Pro Mini and Nano](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Mini_Pro%20and%20Nano.jpg)
 
 # How to program HBnode board:
 1. Burn bootloader. 
