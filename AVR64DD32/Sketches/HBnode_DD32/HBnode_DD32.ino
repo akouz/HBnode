@@ -114,8 +114,21 @@ void coos_task_1ms(void)
         HBcmd.tick10ms();
         if (OK == mon.Rx()) // when monitor command string ready
         {
-            mon.parse();
-            mon.exe();
+          mon.parse();
+          mon.exe();
+        }
+        if (node.rst_cnt)
+        {
+          node.rst_cnt--;
+          if (node.rst_cnt == 0)  // must reset
+          {
+            CCP = IOREG;          // unlock
+            RSTCTRL.SWRR = 1;     // software reset
+            while(1)              // not required really...
+            {
+              Nop();    
+            }
+          }
         }
     }
   }
@@ -194,7 +207,11 @@ void print_hdr_txt(void)
     Serial1.print("', rev ");
     Serial1.print(SW_REV_MAJ);
     Serial1.print('.');
-    Serial1.println(SW_REV_MIN);
+    Serial1.print(SW_REV_MIN);
+    Serial1.print(", signature ");
+    Serial1.print(node.prog_len, HEX);
+    Serial1.print('.');
+    Serial1.println(node.prog_crc, HEX);
 
     if (vld_char(node.location_str[0]))
     {
@@ -214,8 +231,8 @@ void print_hdr_txt(void)
 // ========================================
 void setup()
 {  
-  CCP = IOREG;                // unlock
-  WDT.CTRLA = 7;              // WDT period 0.5 sec
+  //CCP = IOREG;                // unlock
+  //WDT.CTRLA = 10;             // WDT period 4 sec
   pinMode(RLED, OUTPUT);
   digitalWrite(RLED, HIGH);   // red LED off
   pinMode(GLED, OUTPUT);
@@ -258,10 +275,7 @@ void setup()
 // ========================================
 void loop()
 {  
-  coos.run();         // Coos scheduler 
-  if (WDT.CTRLA > 5)  // short WDT periods used for deliberate reset
-  {
-    asm("wdr");       // reset watchdog
-  }
+  coos.run();       // Coos scheduler 
+  asm("wdr");       // reset watchdog
 }
 /* EOF */

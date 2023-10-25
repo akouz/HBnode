@@ -69,8 +69,8 @@ class HB_cmd{
     uchar       rply_tmout;
     uint        ignore_collect;         // in 10 ms ticks
     hb_msg_t    cmd_reply;
+    void        read_EE_security(void);
     void        prep_rply_hdr(hb_msg_t* rxmsg, hb_msg_t* rply, uchar okerr);
-    void        read_security(uchar key_valid);
     uchar       rply_unknown(hb_msg_t* rxmsg, hb_msg_t* rply);
     uchar       rply_rev(hb_msg_t* rxmsg, hb_msg_t* rply);
     uchar       rply_status(hb_msg_t* rxmsg, hb_msg_t* rply);

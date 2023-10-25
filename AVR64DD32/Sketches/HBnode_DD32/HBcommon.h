@@ -125,9 +125,10 @@ enum{
     EE_SN           = 0x40,     // serial number
     EE_nodeID       = 0x48,     // own NodeId
     EE_TZ           = 0x4C,     // time zone
-    EE_SECURITY     = 0x5C,     // access control settings
-    EE_SECURITY_INV = 0x5E,     // inverted access control settings
     EE_XTEA_KEY     = 0x60,     // XTEA cipher key, 16 bytes
+    EE_XTEA_KEY_CRC = 0x70,     // crc for cipher key, 2 bytes
+    EE_SECURITY     = 0x74,     // access control settings
+    EE_SECURITY_INV = 0x76,     // inverted access control settings
     EE_TOPIC_ID     = 0x80,     // own TopicIds, 2-bytes each, up to 32 topics
     EE_NAME_STR     = 0x100,    // name c-string, up to 63 chars
     EE_LOCATION_STR = 0x140,    // location c-string, up to 63 chars
@@ -195,7 +196,10 @@ struct node_struct{
   union{
       uint  ID;             // own ID
       uchar id[2];
-  };  
+  };
+  uchar boot_patt;          // pattern for bootloader exists/cleared
+  uint prog_len;            // program length (starting from 0x400)
+  uint prog_crc;            // program crc
   int  tz;                  // time zone, minutes to UTC
   char name_str[MAX_SSTR];  
   char location_str[MAX_LSTR];  

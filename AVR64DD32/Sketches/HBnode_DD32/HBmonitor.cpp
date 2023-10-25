@@ -66,7 +66,6 @@ enum{
 // Var
 //##############################################################################
 
-// char buf[0x20];
 
 struct{
     uchar cnt;    
@@ -138,6 +137,18 @@ void Mon::begin(void)
     this->txbuf_len = 0;
     this->cr_lf = 0;
     // -----------------------------
+    // sketch signature
+    // -----------------------------
+    i2cbb.read_EE(buf, EE_BOOT_TABLE, 8); 
+    node.boot_patt = 0;
+    if ((buf[0] == 0x55) && (buf[1] = 0xAA))
+    {
+        if ((buf[2] == 0xC3) && (buf[3] = 0x3C))
+            node.boot_patt = 1;
+    }
+    node.prog_len = 0x100*buf[4] + buf[5];
+    node.prog_crc = 0x100*buf[6] + buf[7];
+    // -----------------------------
     // digital values
     // -----------------------------
     i2cbb.read_EE(buf, EE_SEED, 0x20); 
@@ -203,7 +214,11 @@ void Mon::print_rev(void)
     PRINT(", rev ");
     PRINT(SW_REV_MAJ);
     PRINT('.');
-    PRINTLN(SW_REV_MIN);
+    PRINT(SW_REV_MIN);
+    PRINT(", signature ");
+    PRINT(node.prog_len);
+    PRINT('.');
+    PRINTLN(node.prog_crc);
 }
 // =============================================
 // Print S/N
@@ -832,7 +847,7 @@ void Mon::EErd(void)
         }
         if (((addr + i) & 0xFFF0) == EE_XTEA_KEY) // do not print EEPROM key
         {
-            PRINT("XX");
+            PRINT(buf[i]); // PRINT("XX");
         }
         else
         {
@@ -876,11 +891,15 @@ void Mon::EEclr(void)
         {
             len = 0x40;
         }    
+        PRINT("Clearing 0x");
+        PRINT(len);
+        PRINT(" bytes starting at addr 0x");
+        PRINT(addr);
         if (len)    
         {
             i2cbb.write_EE(NULL, addr, len);
         }    
-        PRINTLN("Done");
+        PRINTLN(". Done");
     }
     else
     {
@@ -912,27 +931,37 @@ void Mon::EEcrc(void)
 // =============================================
 void Mon::reset(void)
 {
-    if (this->param.val_cnt == 0)
+    uchar buf4[4];
+    uchar res = ERR;
+    if (this->param.val_cnt == 1)
     {
-        CCP = IOREG;                // unlock
-        RSTCTRL.SWRR = 1;           // software reset
+        if ((uint)this->param.val[0] == 1)
+        {
+            PRINTLN("OK, wait...");
+            res = OK;
+            node.rst_cnt = 2;           // reset in 20 ms
+        }
+        else if ((uint)this->param.val[0] == 2)
+        {
+            PRINTLN("OK, wait...");
+            res = OK;
+            CCP = IOREG;                // unlock
+            RSTCTRL.SWRR = 1;           // software reset
+        }
+        else if ((uint)this->param.val[0] == 3) // fill descriptor
+        {
+            res = OK;
+            PRINTLN("Done");
+            buf4[0] = 0x55;
+            buf4[1] = 0xAA;
+            buf4[2] = 0xC3;
+            buf4[3] = 0x3C;
+            i2cbb.write_EE(buf4, 0x10, 4);
+        }    
     }
-    else
+    if (res != OK)
     {
-        if ((uint)this->param.val[0] == 0)
-        {
-            CCP = IOREG;            // unlock
-            WDT.CTRLA = 1;          // WDT reset in 7.8 ms
-        }
-        else // fill descriptor
-        {
-            uchar buf[4];
-            buf[0] = 0x55;
-            buf[1] = 0xAA;
-            buf[2] = 0xC3;
-            buf[3] = 0x3C;
-            i2cbb.write_EE(buf, 0x10, 4);
-        }
+        PRINTLN("Invalid command");
     }
 }  
      

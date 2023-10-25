@@ -53,20 +53,21 @@ HB_cmd::HB_cmd(void)
     this->cmd_reply.len = 0;
     this->cmd_reply.all = 0;
     this->custom_cmd = NULL;
-    this->read_security(HBcipher.valid);
+    this->read_EE_security();
 }
 // =====================================
 // Read security settings from EEPROM
 // =====================================
-void HB_cmd::read_security(uchar key_valid)
+void HB_cmd::read_EE_security(void)
 {
     uchar buf[0x20];
     node.allow.all = 0xFFFF;    // default: enable unecrypted access to all commands
     if (node.ID < 0x800)        // if permanent NodeID assigned
     {
-        i2cbb.read_EE(buf, EE_SECURITY, 0x14);
-        uint val = 0x100*(uint)buf[0] + buf[1];
-        uint notval = 0x100*(uint)buf[2] + buf[3]; // inverted
+        i2cbb.read_EE(buf, EE_XTEA_KEY, 0x18);
+        uchar offset = EE_SECURITY - EE_XTEA_KEY;
+        uint val = 0x100*(uint)buf[offset] + buf[offset+1];
+        uint notval = 0x100*(uint)buf[offset+2] + buf[offset+3]; // inverted
         notval = (~notval) & 0xFFFF;
         if (val == notval)              // if direct and inverted values are the same
         {
@@ -74,20 +75,17 @@ void HB_cmd::read_security(uchar key_valid)
         }
         else // if values not matched but EEPROM key valid then unencrypted access restricted
         {
-            for (uchar i=0; i<0x10; i++)
+            uint crc = calc_crc(buf, 16);
+            uint bufcrc = 0x100*buf[16] + buf[17];
+            if (bufcrc == crc) // key valid
             {
-                if (buf[4+i] != 0xFF) 
-                {
-                    HBcipher.valid = 1; // EEPROM key valid
-                    node.allow.all = 0; 
-                    node.allow.rev = 1;
-                    node.allow.status = 1;
-                    node.allow.rddescr = 1;
-                    node.allow.rdsecurity = 1;
-                    node.allow.ignore_ts = 1; 
-                    break;
-                }
-            }
+                node.allow.all = 0; 
+                node.allow.rev = 1;
+                node.allow.status = 1;
+                node.allow.rddescr = 1;
+                node.allow.rdsecurity = 1;
+                node.allow.ignore_ts = 1; 
+            }            
         } 
     }
 }
@@ -417,24 +415,27 @@ uchar HB_cmd::rply_boot(hb_msg_t* rxmsg, hb_msg_t* rply)
                             PRINT(", rxcrc=");
                             PRINT(rxcrc);
                             PRINT(", eecrc=");
-                            PRINT(eecrc);
+                            PRINTLN(eecrc);
                             if (rxcrc == eecrc)                                     // if crc matched
                             {
                                 res = i2cbb.write_EE(rxmsg->buf + 16, 0x0010, 8);  // write descriptor
                                 if (res == OK)
                                 {
-                                    PRINTLN(", reset");
-                                    CCP = IOREG;                // unlock
-                                    WDT.CTRLA = 2;              // WDT reset in 15 ms
+                                    PRINTLN("Rebooting, please wait...");
+                                    node.rst_cnt = 15;      // reset in 150 ms
                                 }
                                 else
                                 {
-                                    PRINTLN(", ERR==> EEPROM err, abort");
+                                    PRINTLN(" ==> ERROR: EEPROM error, abort");
                                 }
                             }
                             else
                             {
-                                PRINTLN(" ERR==> CRC mismatch, abort");
+                                PRINT(" ==> ERROR: CRC mismatch, eecrc=");
+                                PRINT(eecrc);
+                                PRINT(", rxcrc=");
+                                PRINT(rxcrc);
+                                PRINTLN(", abort");
                                 res = ERR_CRC;
                             }
                         }
@@ -580,7 +581,7 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
 // =====================================
 uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
 {
-    uchar buf[0x18];
+    uchar buf[0x20];
     uchar wrbuf = 0;
     uchar val, res = ERR;
     uint  newval;
@@ -590,19 +591,23 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
     // ----------------------
     if ((rdwr) && (rxmsg->len > 9))
     {
-        if ((rxmsg->encrypt) || (!HBcipher.valid))
+        if ((rxmsg->encrypt) || (HBcipher.valid == 0))
         {
+            for(uchar i=0x10; i<0x18; i++)
+            {
+                buf[i] = 0xFF;
+            }
             // store unencrypted access settings
             res = OK;
             newval = 0x100*rxmsg->buf[12] + rxmsg->buf[13]; 
             if (newval != node.allow.all)  // if new settings are different
             {
-                buf[0] = rxmsg->buf[12];
-                buf[1] = rxmsg->buf[13];
-                buf[2] = (uchar)(~rxmsg->buf[12]);
-                buf[3] = (uchar)(~rxmsg->buf[13]);
+                uchar offset = EE_SECURITY - EE_XTEA_KEY;
+                buf[offset] = rxmsg->buf[12];
+                buf[offset+1] = rxmsg->buf[13];
+                buf[offset+2] = (uchar)(~rxmsg->buf[12]);
+                buf[offset+3] = (uchar)(~rxmsg->buf[13]);
                 wrbuf = 1; // write new security
-                PRINT(" New_security");
             }
             // store EEPROM key
             if (rxmsg->len > 20) // new cipher supplied
@@ -614,15 +619,17 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
                         for (uchar j=0; j<4; j++) // 4 bytes each
                         {
                             // reverse byte order in every key
-                            buf[4 + 4*i+j] = rxmsg->buf[14 + 4*i + 3-j];
+                            buf[4*i+j] = rxmsg->buf[14 + 4*i + 3-j];
                         }
                     }
+                    uint crc = calc_crc(buf, 16);
+                    buf[16] = (uchar)(crc >> 8);
+                    buf[17] = (uchar)crc;
                     wrbuf |= 2;  // write key                    
-                    PRINT(" New_EEkey");
                 }
                 else
                 {
-                    PRINT(" EEkey_ignored");
+                   PRINT(" EEkey_ignored");
                 }
             }
         }
@@ -630,25 +637,28 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
         {
         case 1: // write security only
             res = i2cbb.write_EE(buf, EE_SECURITY, 4);
+            PRINT(" New_security");
             if (res == OK)
             {
-                node.allow.all = 0x100*buf[0] + buf[1];
+                node.allow.all = newval;
             }            
             break;
         case 2: // write key only
-            res = i2cbb.write_EE(buf+4, EE_SECURITY+4, 0x10);
+            res = i2cbb.write_EE(buf, EE_XTEA_KEY, 0x12);
+            PRINT(" New_EEkey");
             if (res == OK)
             {
-                copy_buf(buf+4, HBcipher.key.uch, 16); 
+                copy_buf(buf, HBcipher.key.uch, 16); 
                 HBcipher.encrypt_EEkeys();
             }
             break;
         case 3: // write security and key 
-            res = i2cbb.write_EE(buf, EE_SECURITY, 0x14);
+            res = i2cbb.write_EE(buf, EE_XTEA_KEY, 0x18);
+            PRINT(" New_security and EEkey");
             if (res == OK)
             {
-                node.allow.all = 0x100*buf[0] + buf[1];
-                copy_buf(buf+4, HBcipher.key.uch, 0x10);                
+                node.allow.all = newval;
+                copy_buf(buf, HBcipher.key.uch, 16);                
                 HBcipher.encrypt_EEkeys();
             }            
             break;
@@ -763,25 +773,6 @@ void HB_cmd::tick10ms(void)
             digitalWrite(RLED, HIGH);
         }
     }
-/*    
-    if (node.rst_cnt)
-    {
-        node.rst_cnt--;
-        if (node.rst_cnt == 0)
-        {
-            digitalWrite(GLED, HIGH);   // green LED off
-            CCP = IOREG;                // unlock
-            WDT.CTRLA = 1;              // WDT reset in 7.8 ms
-            // RSTCTRL.SWRR = 1;           // software reset
-            while(1)
-            {
-                digitalWrite(RLED, HIGH);
-                digitalWrite(RLED, LOW);
-            }
-//            asm("jmp 0");  
-        }
-    }
- */   
 }
 
 /* EOF */

@@ -56,6 +56,7 @@ I2Cbb::I2Cbb(void)
 // for correct operation initial state must be SDA=0, SCL=0
 void I2Cbb::stop(void)
 {
+    delayMicroseconds(2);
     SET_SCL;        // set as input
     delayMicroseconds(4);
     SET_SDA;        // set as input
@@ -70,7 +71,7 @@ void I2Cbb::start(void)
     CLR_SDA;        // set as output
     delayMicroseconds(4);
     CLR_SCL;        // set as output
-    delayMicroseconds(3);
+    delayMicroseconds(2);
 }
 // ============================================
 // One SCL pulse, also read SDA
@@ -78,13 +79,11 @@ void I2Cbb::start(void)
 uchar I2Cbb::pulse(void)
 {
     uchar res;
-    NOP();
+    delayMicroseconds(2);
     SET_SCL;                    // start pulse
     delayMicroseconds(4);
     res = (SDA_IN)? 1 : 0;      // read SDA
-    NOP();
     CLR_SCL;                    // finish pulse
-    NOP();
     return res;
 }
 // ============================================
@@ -105,6 +104,7 @@ uchar I2Cbb::sbyte(uchar val)
     SET_SDA;                
     res = this->pulse();      // read Ack
     CLR_SDA;
+    NOP();
     return res;             
 }
 // ============================================
@@ -114,6 +114,7 @@ uchar I2Cbb::rbyte(uchar nack)
 {
     uchar i, res = 0;
     SET_SDA;
+    NOP();
     for (i=0; i<8; i++)
     {
         res <<= 1;
@@ -123,8 +124,10 @@ uchar I2Cbb::rbyte(uchar nack)
         SET_SDA;        // last byte, send Nack
     else
         CLR_SDA;        // sequential byte, send Ack
+    NOP();
     this->pulse();
     CLR_SDA;
+    NOP();
     return res;
 }
 // ============================================
@@ -194,6 +197,10 @@ uchar I2Cbb::write_EE(uchar* buf, uint adrr, uchar len)
 {
     uint i;
     uchar res = ERR; 
+    if (buf == NULL)
+    {
+        PRINTLN(" buf=NULL");
+    }
     if ((len) && (this->EE_busy == 0))
     {
         this->start();

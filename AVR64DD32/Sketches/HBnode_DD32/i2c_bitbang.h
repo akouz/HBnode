@@ -42,6 +42,7 @@ class I2Cbb{
     public:
         I2Cbb(void);
         uchar EE_busy;
+        uint  crc_EE(uint codelen);
         uchar read_EE(uchar* buf, uint adrr, uint len);
         uchar write_EE(uchar* buf, uint adrr, uchar len);
         uchar rd_char(char* val);
@@ -81,7 +82,6 @@ class I2Cbb{
         uchar print_ulong(ulong val, uchar crlf);
         uchar print_int(int val, uchar crlf);
         void  print_buf(uchar* buf, uchar len, uchar crlf); 
-
 };
 extern I2Cbb i2cbb;
 

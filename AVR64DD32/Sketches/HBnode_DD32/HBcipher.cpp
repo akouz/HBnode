@@ -81,15 +81,6 @@ HB_cipher::HB_cipher(void)
 // ===================================================
 void HB_cipher::encrypt_EEkeys(void)
 {
-    this->valid = 0; // EEPROM cipher considered as invalid is all bytes are equal to 0xFF (eg EEPROM is blank)
-    for (uchar i=0; i<16; i++)
-    {
-        if (this->key.uch[i] != 0xFF)
-        {
-            this->valid = 1;
-            break;
-        }
-    }
     this->encrypt8(13, this->key.uch, (ulong*)flashkey);    // encrypt first half of EEPROM key using flash key
     this->encrypt8(17, this->key.uch+8, (ulong*)flashkey);  // encrypt second half
 }
@@ -107,7 +98,15 @@ void HB_cipher::get_EE_key(void)
     this->valid = 1;
     PRINTLN("Cipher uses default EEPROM key");
 #else
-    i2cbb.read_EE( this->key.uch, EE_XTEA_KEY, 16);
+    uchar buf[0x20]; 
+    i2cbb.read_EE(buf, EE_XTEA_KEY, 0x18);  // key + crc
+    uint crc = calc_crc(buf, 16);
+    uint bufcrc = 0x100*buf[16] + buf[17];
+    this->valid = (bufcrc == crc)? 1 : 0;
+    for (uchar i=0; i<16; i++)
+    {
+        this->key.uch[i] = (this->valid)? buf[i] : 0xFF;
+    }
 #endif
     this->encrypt_EEkeys();
 }
