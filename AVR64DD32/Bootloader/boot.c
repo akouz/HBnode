@@ -98,11 +98,7 @@ uchar bb;
 __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
 {
     // Initialize system for AVR GCC support, expects r1 = 0 
-    asm volatile("clr r1");
-    
-    CCP = IOREG;                // unlock
-    WDT.CTRLA = 0x0A;           // WDT reset in 4 sec    
-        
+    asm volatile("clr r1");          
     init_i2c();
     if (OK == i2c_read(eebuf, 0x10, 8))     // read descriptor: 8 bytes starting from addr 0x10
     {
@@ -149,7 +145,6 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
                         break;
                 }    
                 wait_flash();
-                asm("wdr");         // reset watchdog    
             }    
             // -----------------------
             // clear descriptor and reset
@@ -159,7 +154,7 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
             WDT.CTRLA = 2;              // WDT reset in 15 ms
             while(1)
             {
-                NOP();
+                NOP();                  // give enough time to complete EEPROM writing
             }    
         } // if pattern matches    
     }
@@ -189,8 +184,6 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
         NOP();
     }    
 #else    
-    CCP = IOREG;        // unlock
-    WDT.CTRLA = 0;      // WDT off
     asm("jmp 0x0400");  // jump to application
 #endif    
 }

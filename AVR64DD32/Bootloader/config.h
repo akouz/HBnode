@@ -31,6 +31,7 @@
  * rev 0.4      - tune-up
  * rev 1.0      - debugged
  * rev 1.1      - bug fix, added CCP = IOREG
+ * rev 1.2      - do not use WDT while running bootloader
  */
 
 #ifndef __CONFIG_H
