@@ -123,7 +123,7 @@ uchar RxTx::HEX_to_bin(binbuf_t*  binbuf)
           binbuf->rectype = binbuf->buf[3];   // type
           memcpy(binbuf->buf, binbuf->buf+4, binbuf->len);  // data
           this->rxlen = 0;
-          if ((binbuf->rectype == 0) || (binbuf->rectype == 1))  // only those two types are accepted
+          if ((binbuf->rectype == 0) || (binbuf->rectype == 1))  // only those two tipes are accepted
           {
             return DONE;
           }

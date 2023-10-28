@@ -111,7 +111,7 @@ takes 86.8 us to transfer one byte, or 3.47 ms to transfer one chunk of 16 bytes
 in HEX format.
 
 EEPROM 24LC512 has internal data buffer size of 128 bytes. EEPROM exchange baud
-rate is 400 kbps.
+rate is 200 kbps.
 
 Skretch HEXloader uses two 128 bytes long buffers to write to EEPROM. While one
 buffer used to store incoming PC data, another buffer is being copied into EEPROM.

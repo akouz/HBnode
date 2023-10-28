@@ -20,7 +20,7 @@
 HB_eeprom::HB_eeprom(void)
 {
   Wire.begin();
-  Wire.setClock(400000);              // I2C clock rate 400 kHz
+  Wire.setClock(200000);              // I2C clock rate 200 kHz
   Wire.setWireTimeout(15000, true);   // time-out 15 ms
   this->ack = 1;
 }
