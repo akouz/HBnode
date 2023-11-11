@@ -52,6 +52,7 @@
 // rev 0.13 - wip, security settings
 // rev 0.14 - can download sketches via HBus
 // rev 0.15 - fine tune
+// rev 0.16 - restoring HBus functionality
 
 //##############################################################################
 // Def
@@ -67,7 +68,7 @@
 #define HW_REV_MIN    0
 #define SKETCH_NAME   "HBnode_DD32.ino"
 #define SW_REV_MAJ    0
-#define SW_REV_MIN    15
+#define SW_REV_MIN    16
 
 #define SW_REV  (0x100*SW_REV_MAJ + SW_REV_MIN)
 

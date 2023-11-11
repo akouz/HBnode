@@ -25,9 +25,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HBcommon.h"
 #include "HBmonitor.h"
+#include "HBcipher.h"
 #include "HBus.h"
 #include "HBcmd.h"
-#include "HBcipher.h"
+#include "HBmqtt.h"
 
 //##############################################################################
 // Var
@@ -64,32 +65,61 @@ void set_xtal_24MHz(void)
     CLKCTRL.MCLKCTRLA = 0x03;     // EXTCLK, no clockout
 }
 // ========================================
-// Task 0 toggles led every 0.5 sec
+// Task 0 blinks green LED
 // ========================================
 void coos_task0(void)
 {
 //  static uchar cnt;
   while(1)
   {
-//    digitalWrite(RLED, LOW); 
-    COOS_DELAY(200);          // 500 ms
-//    digitalWrite(RLED, HIGH); 
-    COOS_DELAY(300);          // 500 ms
+    digitalWrite(GLED, LOW); 
+    COOS_DELAY(100);      
+    digitalWrite(GLED, HIGH); 
+    COOS_DELAY(900);      
   }
 }
 // ========================================
-// Task 1 sets led OFF every 0.65 sec
+// Broadcast topic values
 // ========================================
-void coos_task1(void)
+// if node has permanent ID (eg if node configured) then every minute
+// check next topic and broadcast its value if value is valid
+void coos_task_broadcast_val(void)
 {
-  COOS_DELAY(100);    
-  while(1)
-  {
-    COOS_DELAY(950);      
-    digitalWrite(GLED, LOW); 
-    COOS_DELAY(50);      
-    digitalWrite(GLED, HIGH); 
-  }
+    hb_msg_t*  msg;
+    static uchar idx = 0;    // topic index
+    static uchar topic_id_refresh = 250;
+    COOS_DELAY(5000);                                   // initial pause 5 sec
+    HBmqtt.validate_topics();
+    PRINT("MON> ");
+    // -------------------------------
+    // loop
+    // -------------------------------
+    while(1)
+    {
+        if (++topic_id_refresh >= 200)  // after power-up and once in a while
+        {
+            topic_id_refresh = 0;
+            // annonce own topics at HBus
+            while (HBmqtt.init_topic_id(node.ID) != OK)
+            {
+                COOS_DELAY(500);
+            }
+        }
+        if ((node.boot_in_progr == 0) && (node.ID < 0xF000)) // if not a temporary ID
+        {
+            if ((HBmqtt.flag[idx].val_type) && (HBmqtt.flag[idx].topic_valid))  // broadcast only valid values
+            {
+                msg = HBmqtt.publish_own_val(idx);
+            }
+            if (++idx >= MAX_TOPIC)
+            {
+                idx = 0;
+            }
+        }
+        //COOS_DELAY(1000);
+        COOS_DELAY(30000);  // pause 30 sec
+        COOS_DELAY(30000);  // pause 30 sec
+    }
 }
 // ========================================
 // Monitor task runs every 1 ms 
@@ -107,6 +137,10 @@ void coos_task_1ms(void)
     if (node.pause_cnt < 200)
     {
         node.pause_cnt++;
+    }
+    if (node.boot_in_progr)
+    {
+        node.boot_in_progr--;
     }
     if (++cnt >= 10)  // 10 ms
     {
@@ -262,9 +296,9 @@ void setup()
   (HBcipher.valid)? PRINTLN("valid"): PRINTLN("invalid");
   PRINT("MON> "); // prompt
   node.rst_cnt = 0;
-  coos.register_clock(clock_func);  // register clock function
-  coos.register_task(coos_task0);   // register task 0   
-  coos.register_task(coos_task1);   // register task 1
+  coos.register_clock(clock_func);              // register clock function
+  coos.register_task(coos_task0);               // register task 0   
+  coos.register_task(coos_task_broadcast_val); 
   coos.register_task(coos_task_HBus_rxtx);
   coos.register_task(coos_task_1ms);  
   coos.start();                     // init registered tasks

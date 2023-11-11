@@ -60,12 +60,14 @@ enum{
     EECLR_      = 10,
     EECRC_      = 11,
     RESET_      = 12,
+    TOPIC_      = 13,
 };
 
 //##############################################################################
 // Var
 //##############################################################################
 
+const uchar ee_pattern[4] PROGMEM = { 0x55, 0xAA, 0xC3, 0x3C };
 
 struct{
     uchar cnt;    
@@ -96,7 +98,7 @@ const char cmd_list[MON_CMD][10] = {
     {"EECLR"},    
     {"EECRC"},    
     {"RESET"},    
-    {""},    
+    {"TOPIC"},    
     {""},    
     {""},    
 }; 
@@ -121,17 +123,6 @@ void Mon::begin(void)
 {
     uchar buf[0x20];    
     uchar offs;
-    for (uint i=0; i<10; i++)
-    {
-        if (i2cbb.EE_busy)
-        {
-            delay(1);
-        }
-        else
-        {
-            break;
-        }
-    }
     this->reset_param();
     this->rxbuf_len = 0;
     this->txbuf_len = 0;
@@ -578,11 +569,6 @@ void Mon::rdwr_sn(void)
     {
         if ((node.sn[1] == -1) || (node.SN == 0) || (this->param.val[0] == 0)) // if SN is blank or if SN should be erased
         {
-            if (i2cbb.EE_busy)
-            {
-                print_EE_busy();   
-                return;
-            }
             if ((int)this->param.val[0] < 0)
             {
                 this->param.val[0] = 0;
@@ -641,11 +627,6 @@ void Mon::rdwr_id(void)
     {
         if ((node.ID == 0) || (node.ID == 0xFFFF) || (this->param.val[0] == 0))  // if ID is blank or if ID should be erased
         {
-            if (i2cbb.EE_busy)
-            {
-                print_EE_busy();   
-                return;
-            }
             node.ID = (uint)this->param.val[0];         // use first param as nodeID
             buf[0] = (uchar)(this->param.val[0] >> 8);  // MSB goes first
             buf[1] = (uchar)this->param.val[0];         // LSB
@@ -716,11 +697,6 @@ void Mon::rdwr_str(uchar ii)
         }
         if ((str[0] == 0) || ((this->param.str[0] == '-') && (this->param.str[1] == 0))) 
         {
-            if (i2cbb.EE_busy)
-            {
-                print_EE_busy();   
-                return;
-            }
             len = (uchar)strlen(this->param.str);  
             len = (len >= lim)? lim - 1 : len;
             if (this->param.str[0] == '-')  // '-' clears string
@@ -821,7 +797,7 @@ void Mon::HBallow(void)
 // =============================================
 void Mon::EErd(void)
 {
-    uint addr = 0;
+    static uint addr = 0;
     uchar cnt = 1;
     uchar buf[0x80];
     if (this->param.val_cnt)
@@ -847,7 +823,7 @@ void Mon::EErd(void)
         }
         if (((addr + i) & 0xFFF0) == EE_XTEA_KEY) // do not print EEPROM key
         {
-            PRINT(buf[i]); // PRINT("XX");
+            PRINT("XX");
         }
         else
         {
@@ -931,39 +907,85 @@ void Mon::EEcrc(void)
 // =============================================
 void Mon::reset(void)
 {
-    uchar buf4[4];
     uchar res = ERR;
     if (this->param.val_cnt == 1)
     {
-        if ((uint)this->param.val[0] == 1)
+        switch((uchar)this->param.val[0])
         {
+        case 1:
             PRINTLN("OK, wait...");
             res = OK;
             node.rst_cnt = 2;           // reset in 20 ms
-        }
-        else if ((uint)this->param.val[0] == 2)
-        {
+            break;
+        case 2:
             PRINTLN("OK, wait...");
             res = OK;
             CCP = IOREG;                // unlock
             RSTCTRL.SWRR = 1;           // software reset
-        }
-        else if ((uint)this->param.val[0] == 3) // fill descriptor
-        {
-            res = OK;
+            break;
+        case 3:
             PRINTLN("Done");
-            buf4[0] = 0x55;
-            buf4[1] = 0xAA;
-            buf4[2] = 0xC3;
-            buf4[3] = 0x3C;
-            i2cbb.write_EE(buf4, 0x10, 4);
-        }    
+            res = OK;
+            i2cbb.write_EE((uchar*)ee_pattern, 0x10, 4);
+            break;
+        default:
+            break;
+        }
     }
     if (res != OK)
     {
         PRINTLN("Invalid command");
     }
 }  
+// =============================================
+// Topic
+// =============================================
+void Mon::topic(void)
+{
+    char buf[0x40]; 
+    uchar done = 0;   
+    if (this->param.val_cnt == 0)
+    {
+        for (uchar i=0; i<MAX_TOPIC; i++)
+        {
+            if (HBmqtt.flag[i].topic_name_valid)
+            {
+                done = 1;
+                PRINT(i);
+                PRINT(": ");
+                HBmqtt.copy_topic_name(i, buf);
+                PRINT(buf);
+                if (HBmqtt.flag[i].topic_valid)    
+                {
+                    PRINT(", TopicId ");
+                    if (ownTopicId[i] < 0x8000)
+                        PRINT((int)ownTopicId[i]);
+                    else    
+                        PRINT(ownTopicId[i]);
+                    if (HBmqtt.flag[i].val_type) // if value valid
+                    {
+                        PRINT(", val ");
+                        HBmqtt.print_own_val(i, buf);  
+                        PRINTLN(buf);  
+                    }                    
+                    else
+                        PRINTLN();
+                }
+                else
+                    PRINTLN();
+            }
+        }
+        if (done == 0)
+        {
+            PRINTLN("No valid topics");
+        }
+        PRINT("MON> ");
+    }
+    else if (this->param.val_cnt == 1)
+    {
+        HBmqtt.validate_topics();
+    }
+}        
      
 // =============================================
 // Find command
@@ -1025,6 +1047,9 @@ uchar Mon::exe(void)
                 break;
             case RESET_:
                 this->reset();
+                break;
+            case TOPIC_:
+                this->topic();
                 break;
             default:
                 PRINTLN("REV, [n] SN, [n] nodeID, [txt] NAME, [txt] LOCATION, [txt] DESCR, [addr, len] EERD, [addr, len] EECLR"); // list of commands

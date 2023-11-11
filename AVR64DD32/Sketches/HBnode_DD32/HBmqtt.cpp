@@ -1,6 +1,6 @@
 /*
  * File     HBmqtt.cpp
- 
+
  * (c) 2023 Alex Kouznetsov,  https://github.com/akouz/hbus
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,72 +22,72 @@
  * SOFTWARE.
  */
 
-//##############################################################################
-// Inc
-//##############################################################################
+// ##############################################################################
+//  Inc
+// ##############################################################################
 
 #include "HBmqtt.h"
 #include "HBcmd.h"
 
-//##############################################################################
-// Def
-//##############################################################################
+// ##############################################################################
+//  Def
+// ##############################################################################
 
 #ifndef TOPIC0
-    #define TOPIC0 ""
+#define TOPIC0 ""
 #endif
 #ifndef TOPIC1
-    #define TOPIC1 ""
+#define TOPIC1 ""
 #endif
 #ifndef TOPIC2
-    #define TOPIC2 ""
+#define TOPIC2 ""
 #endif
 #ifndef TOPIC3
-    #define TOPIC3 ""
+#define TOPIC3 ""
 #endif
 #ifndef TOPIC4
-    #define TOPIC4 ""
+#define TOPIC4 ""
 #endif
 #ifndef TOPIC5
-    #define TOPIC5 ""
+#define TOPIC5 ""
 #endif
 #ifndef TOPIC6
-    #define TOPIC6 ""
+#define TOPIC6 ""
 #endif
 #ifndef TOPIC7
-    #define TOPIC7 ""
+#define TOPIC7 ""
 #endif
 #ifndef TOPIC8
-    #define TOPIC8 ""
+#define TOPIC8 ""
 #endif
 #ifndef TOPIC9
-    #define TOPIC9 ""
+#define TOPIC9 ""
 #endif
 #ifndef TOPIC10
-    #define TOPIC10 ""
+#define TOPIC10 ""
 #endif
 #ifndef TOPIC11
-    #define TOPIC11 ""
+#define TOPIC11 ""
 #endif
 #ifndef TOPIC12
-    #define TOPIC12 ""
+#define TOPIC12 ""
 #endif
 #ifndef TOPIC13
-    #define TOPIC13 ""
+#define TOPIC13 ""
 #endif
 #ifndef TOPIC14
-    #define TOPIC14 ""
+#define TOPIC14 ""
 #endif
 #ifndef TOPIC14
-    #define TOPIC14 ""
+#define TOPIC14 ""
 #endif
 #ifndef TOPIC15
-    #define TOPIC15 ""
+#define TOPIC15 ""
 #endif
 
-//##############################################################################
-// Var
-//##############################################################################
+// ##############################################################################
+//  Var
+// ##############################################################################
 
 HB_mqtt HBmqtt;
 
@@ -109,21 +109,18 @@ const char topic13[] PROGMEM = TOPIC13;
 const char topic14[] PROGMEM = TOPIC14;
 const char topic15[] PROGMEM = TOPIC15;
 
-
 // up to 16 topic names
-const char* const ownTopicName[] PROGMEM = {
-topic0,  topic1,  topic2,  topic3,   topic4,  topic5,  topic6,  topic7,
-topic8,  topic9,  topic10, topic11,  topic12, topic13, topic14, topic15
-};
+const char *const ownTopicName[] PROGMEM = {
+    topic0, topic1, topic2, topic3, topic4, topic5, topic6, topic7,
+    topic8, topic9, topic10, topic11, topic12, topic13, topic14, topic15};
 
 uint ownTopicId[] = {
-0, 0, 0, 0,  0, 0, 0, 0,
-0, 0, 0, 0,  0, 0, 0, 0
-};
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0};
 
-//##############################################################################
-// Func
-//##############################################################################
+// ##############################################################################
+//  Func
+// ##############################################################################
 
 // =============================================
 // Constructor
@@ -135,24 +132,25 @@ HB_mqtt::HB_mqtt(void)
     this->MsgID = 1;
     this->MsgID_cnt = 0;
     this->MsgID_err_cnt = 0;
-    for (uchar i=0; i<MAX_TOPIC; i++)
+    for (uchar ti=0; ti<MAX_TOPIC; ti++)
     {
-        this->flag[i].all = 0;
-        ownTopicId[i] = 0;
+        this->flag[ti].all = 0;
+        ownTopicId[ti] = 0;
     }
 }
 // =============================================
 // Copy topic from progmem
 // =============================================
-uchar copy_topic(uchar i, char* buf)
+uchar HB_mqtt::copy_topic_name(uchar ti, char *buf)
 {
     uint len;
-    if (i<MAX_TOPIC)
+    if (ti < MAX_TOPIC)
     {
-        char* ptr = (char*) pgm_read_word(&ownTopicName[i]);
-        if (ptr)
+        char* str = (char*) pgm_read_word(&ownTopicName[ti]);
+        // char *str = (char *)&ownTopicName[ti];
+        if (str)
         {
-            strcpy_P(buf, ptr);
+            strcpy_P(buf, str);
             len = strlen(buf);
             if ((len) && (len < 0x40))
             {
@@ -170,19 +168,15 @@ uchar HB_mqtt::validate_topics(void)
 {
     uchar res = 0;
     char buf[0x80];
-#ifdef DEBUG
-    Serial1.println(F("Topics:"));
-#endif
-    for (uchar i=0; i<MAX_TOPIC; i++)
+    PRINTLN("Topics:");
+    for (uchar ti=0; ti<MAX_TOPIC; ti++)
     {
-        if (copy_topic(i, buf))
+        if (this->copy_topic_name(ti, buf))
         {
-#ifdef DEBUG
-            Serial1.print(i);
-            Serial1.print(F(": topic_name="));
-            Serial1.println(buf);
-#endif
-            this->flag[i].topic_name = 1;
+            PRINT(ti);
+            PRINT(": topic_name=");
+            PRINTLN(buf);
+            this->flag[ti].topic_name_valid = 1;  
             res++;
         }
     }
@@ -191,7 +185,7 @@ uchar HB_mqtt::validate_topics(void)
 // =============================================
 // Is topic name in the list?
 // =============================================
-char HB_mqtt::is_own_topic_name(const char* tn)
+char HB_mqtt::is_own_topic_name(const char *tn)
 {
     for (uchar ti=0; ti<MAX_TOPIC; ti++)
     {
@@ -206,11 +200,11 @@ char HB_mqtt::is_own_topic_name(const char* tn)
 // =============================================
 char HB_mqtt::is_own_topic_id(uint tid)
 {
-    for (uchar i=0; i<MAX_TOPIC; i++)
+    for (uchar ti=0; ti<MAX_TOPIC; ti++)
     {
-        if (tid == ownTopicId[i])
+        if (tid == ownTopicId[ti])
         {
-           return (char)i;
+            return (char)ti;
         }
     }
     return -1;
@@ -219,9 +213,9 @@ char HB_mqtt::is_own_topic_id(uint tid)
 // =============================================
 // Get MsgID from the bus
 // =============================================
-void  HB_mqtt::get_MsgID(uchar msg_id)
+void HB_mqtt::get_MsgID(uchar msg_id)
 {
-    if ((msg_id == this->MsgID+1) || ((this->MsgID == 0xFE) && (msg_id == 1)))
+    if ((msg_id == this->MsgID + 1) || ((this->MsgID == 0xFE) && (msg_id == 1)))
     {
         this->MsgID = msg_id;
     }
@@ -238,7 +232,7 @@ void  HB_mqtt::get_MsgID(uchar msg_id)
 // =============================================
 // Read message and extract its values
 // =============================================
-uchar HB_mqtt::rd_msg(hb_msg_t* msg)
+uchar HB_mqtt::rd_msg(hb_msg_t *msg)
 {
     uchar buf[0x10];
     static const char S_val[] = "val";
@@ -246,29 +240,29 @@ uchar HB_mqtt::rd_msg(hb_msg_t* msg)
     static const char S_daysec[] = "daysec";
     schar res = -2;
     uchar mt = msg->buf[0] & 0x0F;                      // MsgType is low nibble
-    uint tid = 0x100*(uint)msg->buf[3] + msg->buf[4];   // TopicId
+    uint tid = 0x100 * (uint)msg->buf[3] + msg->buf[4]; // TopicId
     this->get_MsgID(msg->buf[5]);                       // MsgId
     // ------------------------------------
     // PUBLISH messages
     // ------------------------------------
     if ((mt == MT_PUBLISH) && ((msg->encrypt) || (node.allow.publish)))
     {
-        if ((node.allow.ignore_ts) || (msg->ts_ok) || (!msg->encrypt))  // timestamp
+        if ((node.allow.ignore_ts) || (msg->ts_ok) || (!msg->encrypt)) // timestamp
         {
-            this->MsgID_cnt = (this->MsgID_cnt < 0xFFFFFFFF)? this->MsgID_cnt+1 : 1;
+            this->MsgID_cnt = (this->MsgID_cnt < 0xFFFFFFFF) ? this->MsgID_cnt + 1 : 1;
             if (tid >= 0x20) // it is a user-defined topic
             {
-                res =  this->is_own_topic_id(tid);
+                res = this->is_own_topic_id(tid);
                 if (res >= 0) // it is one of own topics
                 {
                     uchar idx = (uchar)res;
                     jsonBuf.clear();
-                    JsonObject& root = jsonBuf.parseObject(msg->buf+12);
+                    JsonObject &root = jsonBuf.parseObject(msg->buf + 12);
                     if (root.success())
                     {
                         float val = root[S_val];
                         blink(10);
-                        switch(this->flag[idx].val_type)
+                        switch (this->flag[idx].val_type)
                         {
                         case VT_NONE:
                         case VT_FLOAT:
@@ -305,21 +299,21 @@ uchar HB_mqtt::rd_msg(hb_msg_t* msg)
             else if (tid == 1) // it is pre-defined topic "time"
             {
                 jsonBuf.clear();
-                JsonObject& root = jsonBuf.parseObject(msg->buf+12);
+                JsonObject &root = jsonBuf.parseObject(msg->buf + 12);
                 if (root.success())
                 {
                     if (coos.uptime < 0x10000000) // time never been updated
                     {
-                        coos.uptime =  (ulong)root[S_atime];
+                        coos.uptime = (ulong)root[S_atime];
                         coos.daysec = (ulong)root[S_daysec];
                         blink(10);
                     }
                     else
                     {
                         ulong atime = (ulong)root[S_atime];
-                        if ((atime < coos.uptime+TIME_TOLERANCE) && (atime > coos.uptime-TIME_TOLERANCE))  // +/- 10 sec
+                        if ((atime < coos.uptime+TIME_TOLERANCE) && (atime+TIME_TOLERANCE > coos.uptime)) // +/- 10 sec
                         {
-                            coos.uptime = atime;  // time accepted
+                            coos.uptime = atime; // time accepted
                             coos.daysec = (ulong)root[S_daysec];
                             blink(10);
                         }
@@ -333,36 +327,40 @@ uchar HB_mqtt::rd_msg(hb_msg_t* msg)
     // ------------------------------------
     if ((mt == MT_REGISTER) && (msg->buf[8]) && ((msg->encrypt) || (node.allow.reg)))
     {
-        if ((node.allow.ignore_ts) || (msg->ts_ok) || (!msg->encrypt))  // timestamp
+        if ((node.allow.ignore_ts) || (msg->ts_ok) || (!msg->encrypt)) // timestamp
         {
-            this->MsgID_cnt = (this->MsgID_cnt < 0xFFFFFFFF)? (this->MsgID_cnt+1) : 1;
-            msg->buf[msg->len] = 0;   // make 0-terminated string
+            this->MsgID_cnt = (this->MsgID_cnt < 0xFFFFFFFF) ? (this->MsgID_cnt + 1) : 1;
+            msg->buf[msg->len] = 0; // make 0-terminated string
             res = this->is_own_topic_name((const char *)msg->buf + 8);
             if (res >= 0)
             {
                 if (tid > 0) // if it is an assignment
                 {
-                    uint addr = EE_TOPIC_ID + 2*res;
+                    uint addr = EE_TOPIC_ID + 2 * res;
                     buf[0] = (uchar)(tid >> 8);
-                    buf[1] = (uchar) tid;
+                    buf[1] = (uchar)tid;
+                    while (i2cbb.EE_busy)
+                    {
+                        delay(100);
+                    }
                     i2cbb.write_EE(buf, addr, 2);
                     if (tid < 0xFFFF) // if valid tid
                     {
-                        ownTopicId[(uchar)res] = tid;   //  bind ownTopicId and ownTopicName
-                        flag[(uchar)res].topic = 1;
+                        ownTopicId[(uchar)res] = tid; //  bind ownTopicId and ownTopicName
+                        flag[(uchar)res].topic_valid = 1;
                     }
                     else // if tid==0xFFFF then clear ownTopicId
                     {
                         ownTopicId[(uchar)res] = 0;
-                        flag[(uchar)res].topic = 0;
+                        flag[(uchar)res].topic_valid = 0;
                     }
                     blink(10);
                 }
-                else   // if t is a query
+                else // if t is a query
                 {
                     if (ownTopicId[(uchar)res]) // ownTopicId was assigned
                     {
-                        this->make_msg_register((uchar)res);  // broadcast it
+                        this->make_msg_register((uchar)res); // broadcast it
                         blink(10);
                     }
                 }
@@ -382,14 +380,14 @@ void HB_mqtt::make_msg_header(uchar MsgType, uint tid)
     add_txmsg_uchar(&this->mqmsg, (msb_nibble | MsgType)); // MsgType
     add_txmsg_uchar(&this->mqmsg, node.id[1]);             // NodeId
     add_txmsg_uchar(&this->mqmsg, node.id[0]);
-    add_txmsg_uchar(&this->mqmsg, (uchar)(tid >> 8));     // TopicId
+    add_txmsg_uchar(&this->mqmsg, (uchar)(tid >> 8)); // TopicId
     add_txmsg_uchar(&this->mqmsg, (uchar)tid);
-    this->MsgID = (this->MsgID < 0xFE)? (this->MsgID+1) : 1;
-    add_txmsg_uchar(&this->mqmsg, this->MsgID);           // MsgId
-    add_txmsg_uchar(&this->mqmsg, random(0x100));         // nonce
-    add_txmsg_uchar(&this->mqmsg, 1);                     // DF = JSON
-    add_ts(&this->mqmsg);                                 // timestamp
- }
+    this->MsgID = (this->MsgID < 0xFE) ? (this->MsgID + 1) : 1;
+    add_txmsg_uchar(&this->mqmsg, this->MsgID);   // MsgId
+    add_txmsg_uchar(&this->mqmsg, random(0x100)); // nonce
+    add_txmsg_uchar(&this->mqmsg, 1);             // DF = JSON
+    add_ts(&this->mqmsg);                         // timestamp
+}
 
 // =============================================
 // Make a MQTT-SN message REGISTER
@@ -398,13 +396,13 @@ uchar HB_mqtt::make_msg_register(uchar ti)
 {
     mqmsg.valid = 0;
     char buf[0x40];
-    if ((ti < MAX_TOPIC) && (this->flag[ti].topic_name))
+    if ((ti < MAX_TOPIC) && (this->flag[ti].topic_name_valid))
     {
         this->make_msg_header(MT_REGISTER, ownTopicId[ti]);
-        copy_topic(ti, buf);    // topic name
+        copy_topic_name(ti, buf); // topic name
         add_txmsg_z_str(&this->mqmsg, buf);
         finish_txmsg(&this->mqmsg);
-        this->mqmsg.encrypt = (node.allow.broadcast)? 0 : 1;   // can send unencrypted?
+        this->mqmsg.encrypt = (node.allow.broadcast) ? 0 : 1; // can send unencrypted?
         this->mqmsg.hb = 0;
         this->mqmsg.valid = 1;
         return OK;
@@ -417,7 +415,7 @@ uchar HB_mqtt::make_msg_register(uchar ti)
 // Make a MQTT-SN message PUBLISH
 // =============================================
 // if len=0 then treat buf as a text string
-uchar HB_mqtt::make_msg_publish(uint tid, uchar* buf, uchar len)
+uchar HB_mqtt::make_msg_publish(uint tid, uchar *buf, uchar len)
 {
     mqmsg.valid = 0;
     if ((tid) && (tid < 0xFFFF))
@@ -432,7 +430,7 @@ uchar HB_mqtt::make_msg_publish(uint tid, uchar* buf, uchar len)
         // --------------------------------------
         if (buf)
         {
-            for (uchar i=0; i<128; i++)
+            for (uchar i = 0; i < 128; i++)
             {
                 // --------------------------
                 // if buf is a text string
@@ -451,7 +449,7 @@ uchar HB_mqtt::make_msg_publish(uint tid, uchar* buf, uchar len)
                 // --------------------------
                 else
                 {
-                    if (i<len)
+                    if (i < len)
                     {
                         add_txmsg_uchar(&mqmsg, buf[i]);
                     }
@@ -465,7 +463,7 @@ uchar HB_mqtt::make_msg_publish(uint tid, uchar* buf, uchar len)
             add_txmsg_uchar(&mqmsg, '}');
         }
         finish_txmsg(&mqmsg);
-        mqmsg.encrypt = (node.allow.broadcast)? 0 : 1;   // can send unencrypted?
+        mqmsg.encrypt = (node.allow.broadcast) ? 0 : 1; // can send unencrypted?
         mqmsg.hb = 0;
         mqmsg.valid = 1;
         return OK;
@@ -477,14 +475,14 @@ uchar HB_mqtt::make_msg_publish(uint tid, uchar* buf, uchar len)
 // =============================================
 // Add topic name to the published message
 // =============================================
-uchar  HB_mqtt::add_tname(uchar idx, char* buf)
+uchar HB_mqtt::add_tname(uchar idx, char *buf)
 {
     char cmnt[] = ", topic:"; // 8 chars
     strcpy(buf, cmnt);
-    uchar len = copy_topic(idx, buf + 8);
+    uchar len = this->copy_topic_name(idx, buf + 8);
     if (len)
     {
-//        Serial1.print(buf);
+        //        Serial1.print(buf);
         return len + 8;
     }
     return 0;
@@ -494,48 +492,62 @@ uchar  HB_mqtt::add_tname(uchar idx, char* buf)
 // =============================================
 // Print value to buffer
 // =============================================
-uint HB_mqtt::print_own_val(uchar idx, char* buf)
+uint HB_mqtt::print_own_val(uchar idx, char *buf)
 {
+    int res;
     if (idx > MAX_TOPIC)
     {
         return 0;
     }
-    switch(this->flag[idx].val_type)
+    switch (this->flag[idx].val_type)
     {
     case VT_FLOAT:
-        dtostrf(this->value[idx].fl, 4,2, buf);
-        for (uint i=0; i<0x20; i++)
+        dtostrf(this->value[idx].fl, 4, 2, buf);
+        //PRINTLN(buf);
+        for (uint i = 0; i < 0x20; i++)
         {
             if (buf[i] == 0)
                 return i;
         }
         break;
     case VT_INT:
-        return sprintf(buf,"%d",this->value[idx].si);
+        res = sprintf(buf, "%d", this->value[idx].si);
+        //PRINTLN(buf);
+        return res;
         break;
     case VT_UINT:
-        return sprintf(buf,"%u",this->value[idx].ui);
+        res = sprintf(buf, "%u", this->value[idx].ui);
+        //PRINTLN(buf);
+        return res;
         break;
     case VT_SLONG:
-        return sprintf(buf,"%ld",this->value[idx].sl);
+        res = sprintf(buf, "%ld", this->value[idx].sl);
+        //PRINTLN(buf);
+        return res;
         break;
     case VT_ULONG:
-        return sprintf(buf,"%lu",this->value[idx].ul);
+        res = sprintf(buf, "%lu", this->value[idx].ul);
+        //PRINTLN(buf);
+        return res;
         break;
     default:
         break;
     }
     buf[0] = '0';
     buf[1] = 0;
+    //PRINTLN();
     return 1;
 }
 
 // =============================================
 // Set own value
 // =============================================
-uchar  HB_mqtt::set_val_float(uchar idx, float val)
+uchar HB_mqtt::set_val_float(uchar idx, float val)
 {
-    if (this->flag[idx].val_type == VT_NONE) { this->flag[idx].val_type = VT_FLOAT; }
+    if (this->flag[idx].val_type == VT_NONE)
+    {
+        this->flag[idx].val_type = VT_FLOAT;
+    }
     if (this->flag[idx].val_type == VT_FLOAT)
     {
         this->value[idx].fl = val;
@@ -543,9 +555,12 @@ uchar  HB_mqtt::set_val_float(uchar idx, float val)
     }
     return ERR_TYPE;
 }
-uchar  HB_mqtt::set_val_int(uchar idx, int val)
+uchar HB_mqtt::set_val_int(uchar idx, int val)
 {
-    if (this->flag[idx].val_type == VT_NONE) { this->flag[idx].val_type = VT_INT; }
+    if (this->flag[idx].val_type == VT_NONE)
+    {
+        this->flag[idx].val_type = VT_INT;
+    }
     if (this->flag[idx].val_type == VT_INT)
     {
         this->value[idx].si = val;
@@ -553,9 +568,12 @@ uchar  HB_mqtt::set_val_int(uchar idx, int val)
     }
     return ERR_TYPE;
 }
-uchar  HB_mqtt::set_val_uint(uchar idx, uint val)
+uchar HB_mqtt::set_val_uint(uchar idx, uint val)
 {
-    if (this->flag[idx].val_type == VT_NONE) { this->flag[idx].val_type = VT_UINT; }
+    if (this->flag[idx].val_type == VT_NONE)
+    {
+        this->flag[idx].val_type = VT_UINT;
+    }
     if (this->flag[idx].val_type == VT_UINT)
     {
         this->value[idx].ui = val;
@@ -563,9 +581,12 @@ uchar  HB_mqtt::set_val_uint(uchar idx, uint val)
     }
     return ERR_TYPE;
 }
-uchar  HB_mqtt::set_val_slong(uchar idx, slong val)
+uchar HB_mqtt::set_val_slong(uchar idx, slong val)
 {
-    if (this->flag[idx].val_type == VT_NONE) { this->flag[idx].val_type = VT_SLONG; }
+    if (this->flag[idx].val_type == VT_NONE)
+    {
+        this->flag[idx].val_type = VT_SLONG;
+    }
     if (this->flag[idx].val_type == VT_SLONG)
     {
         this->value[idx].sl = val;
@@ -573,9 +594,12 @@ uchar  HB_mqtt::set_val_slong(uchar idx, slong val)
     }
     return ERR_TYPE;
 }
-uchar  HB_mqtt::set_val_ulong(uchar idx, ulong val)
+uchar HB_mqtt::set_val_ulong(uchar idx, ulong val)
 {
-    if (this->flag[idx].val_type == VT_NONE) { this->flag[idx].val_type = VT_ULONG; }
+    if (this->flag[idx].val_type == VT_NONE)
+    {
+        this->flag[idx].val_type = VT_ULONG;
+    }
     if (this->flag[idx].val_type == VT_ULONG)
     {
         this->value[idx].ul = val;
@@ -586,7 +610,7 @@ uchar  HB_mqtt::set_val_ulong(uchar idx, ulong val)
 // =============================================
 // Get own value
 // =============================================
-uchar  HB_mqtt::get_val(uchar idx, float* val)
+uchar HB_mqtt::get_val(uchar idx, float *val)
 {
     if (this->flag[idx].val_type == VT_FLOAT)
     {
@@ -595,7 +619,7 @@ uchar  HB_mqtt::get_val(uchar idx, float* val)
     }
     return ERR_TYPE;
 }
-uchar  HB_mqtt::get_val(uchar idx, int* val)
+uchar HB_mqtt::get_val(uchar idx, int *val)
 {
     if (this->flag[idx].val_type == VT_INT)
     {
@@ -604,7 +628,7 @@ uchar  HB_mqtt::get_val(uchar idx, int* val)
     }
     return ERR_TYPE;
 }
-uchar  HB_mqtt::get_val(uchar idx, uint* val)
+uchar HB_mqtt::get_val(uchar idx, uint *val)
 {
     if (this->flag[idx].val_type == VT_UINT)
     {
@@ -613,7 +637,7 @@ uchar  HB_mqtt::get_val(uchar idx, uint* val)
     }
     return ERR_TYPE;
 }
-uchar  HB_mqtt::get_val(uchar idx, slong* val)
+uchar HB_mqtt::get_val(uchar idx, slong *val)
 {
     if (this->flag[idx].val_type == VT_SLONG)
     {
@@ -622,7 +646,7 @@ uchar  HB_mqtt::get_val(uchar idx, slong* val)
     }
     return ERR_TYPE;
 }
-uchar  HB_mqtt::get_val(uchar idx, ulong* val)
+uchar HB_mqtt::get_val(uchar idx, ulong *val)
 {
     if (this->flag[idx].val_type == VT_ULONG)
     {
@@ -635,25 +659,39 @@ uchar  HB_mqtt::get_val(uchar idx, ulong* val)
 // =============================================
 // PUBLISH own value  to HBus and to MQTT
 // =============================================
-hb_msg_t* HB_mqtt::publish_own_val(uint idx)
+hb_msg_t *HB_mqtt::publish_own_val(uint idx)
 {
     if (idx < MAX_TOPIC)
     {
         uint tid = ownTopicId[idx]; // topic ID
         if (tid)
         {
-            char   mbuf[0x40];
+            char mbuf[0x40];
             this->make_msg_header(MT_PUBLISH, tid);
-            uint len = sprintf(mbuf,"{val:");
-            len += this->print_own_val(idx, mbuf+len);
-    #ifdef BROADCAST_TOPIC_NAME
-            len += this->add_tname(idx, mbuf+len);
-    #endif
+            uint len = sprintf(mbuf, "{val:");
+            PRINT(" Publishing TopicId ");
+            if (ownTopicId[idx] < 0x8000)
+            {
+                PRINT((int)ownTopicId[idx]);
+            }
+            else
+            {
+                PRINT("0x");
+                PRINT(ownTopicId[idx]);
+            }                
+            PRINT(", val ");
+            uchar oldlen = len;
+            len += this->print_own_val(idx, mbuf + len);
+            PRINTLN(mbuf + oldlen);
+            PRINT("MON> ");
+#ifdef BROADCAST_TOPIC_NAME
+            len += this->add_tname(idx, mbuf + len);
+#endif
             mbuf[len++] = '}';
             mbuf[len] = 0;
-            add_txmsg_z_str(&mqmsg, mbuf);              // add mbuf as a z-string to HBus message
-            finish_txmsg(&mqmsg);                       // finish message to HBus
-            mqmsg.encrypt = (node.allow.broadcast)? 0 : 1;   // can send unencrypted?
+            add_txmsg_z_str(&mqmsg, mbuf);                  // add mbuf as a z-string to HBus message
+            finish_txmsg(&mqmsg);                           // finish message to HBus
+            mqmsg.encrypt = (node.allow.broadcast) ? 0 : 1; // can send unencrypted?
             mqmsg.hb = 0;
             mqmsg.valid = 1;
             return &mqmsg;
@@ -672,52 +710,52 @@ uchar HB_mqtt::init_topic_id(uint node_id)
     static uchar state = 0;
     if ((node_id & 0xF000) == 0xF000) // if temporary NodeID
     {
-        return 1;   // do not process further, loop
+        return 1; // do not process further, loop
     }
     switch (state)
     {
     case 0:
-        if (flag[ti].topic_name == 0) // if TopicName invalid
+        if (flag[ti].topic_name_valid == 0) // if TopicName invalid
         {
-            flag[ti].topic = 0;                    // ensure
+            flag[ti].topic_valid = 0; // ensure
             flag[ti].val_type = VT_NONE;
-            state = (++ti >= MAX_TOPIC) ? 99 : 0;   // next topic or finish
+            state = (++ti >= MAX_TOPIC) ? 99 : 0; // next topic or finish
         }
         else // if TopicName valid
         {
-            if (ownTopicId[ti])    // if ownTopicId already valid
+            if (ownTopicId[ti]) // if ownTopicId already valid
             {
-                flag[ti].topic = 1;                    // ensure
-                state = (++ti >= MAX_TOPIC) ? 99 : 0;   // next topic or finish
+                flag[ti].topic_valid = 1;                   // ensure
+                state = (++ti >= MAX_TOPIC) ? 99 : 0; // next topic or finish
             }
-            else    // TopicId not valid, make request
+            else // TopicId not valid, make request
             {
-                flag[ti].topic = 0;
+                flag[ti].topic_valid = 0;
                 this->make_msg_register(ti); // issue REGISTER with TopicId=0
                 state++;
             }
         }
         break;
     case 1:
-        if (ownTopicId[ti] == 0)  // if other nodes did not supply TopicId
+        if (ownTopicId[ti] == 0) // if other nodes did not supply TopicId
         {
-            ownTopicId[ti] =  (node_id << 5) | ti; // use NodeID to assign TopicId
-            uint addr = EE_TOPIC_ID + 2*ti;
+            ownTopicId[ti] = (node_id << 5) | ti; // use NodeID to assign TopicId
+            uint addr = EE_TOPIC_ID + 2 * ti;
             buf[0] = (uchar)(ownTopicId[ti] >> 8);
             buf[1] = (uchar)ownTopicId[ti];
             i2cbb.write_EE(buf, addr, 2);
-            flag[ti].topic = 1;
-            this->make_msg_register(ti);   // issue REGISTER with newly assigned ownTopicId - targeting gateways
+            flag[ti].topic_valid = 1;
+            this->make_msg_register(ti); // issue REGISTER with newly assigned ownTopicId - targeting gateways
         }
-        state = (++ti >= MAX_TOPIC) ? 99 : 0;  // next topic or finish
+        state = (++ti >= MAX_TOPIC) ? 99 : 0; // next topic or finish
         break;
     default:
-        ti = 0;     // be ready for another cycle
+        ti = 0; // be ready for another cycle
         state = 0;
-        return OK;  // all topics processed, finish
+        return OK; // all topics processed, finish
         break;
     }
-    return 2;   // continue
+    return 2; // continue
 }
 
 /* EOF */

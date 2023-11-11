@@ -223,15 +223,15 @@ uchar HB_cmd::rply_status(hb_msg_t* rxmsg, hb_msg_t* rply)
             snprintf(buf, sizeof(buf),"{tid:[");
             add_txmsg_z_str(rply, buf);
             buf[0] = 0;
-            for (uchar i=0; i< MAX_TOPIC; i++)
+            for (uchar ti=0; ti< MAX_TOPIC; ti++)
             {
-                if (HBmqtt.flag[i].topic_name)
+                if ((HBmqtt.flag[ti].topic_name_valid) && (HBmqtt.flag[ti].topic_valid))
                 {
                     if (buf[0])
                     {
                         add_txmsg_uchar(rply, uchar(',')); // add comma between items
                     }
-                    tpc = ownTopicId[i];
+                    tpc = ownTopicId[ti];
                     snprintf(buf, sizeof(buf),"%d", tpc);
                     add_txmsg_z_str(rply, buf);
                 }
@@ -240,27 +240,35 @@ uchar HB_cmd::rply_status(hb_msg_t* rxmsg, hb_msg_t* rply)
             snprintf(buf, sizeof(buf),"], val:[");
             add_txmsg_z_str(rply, buf);
             buf[0] = 0;
-            for (uchar i=0; i<MAX_TOPIC; i++)
+            for (uchar ti=0; ti<MAX_TOPIC; ti++)
             {
-                if (HBmqtt.flag[i].topic_name)
+                if ((HBmqtt.flag[ti].topic_name_valid) && (HBmqtt.flag[ti].topic_valid))
                 {
                     if (buf[0])
                     {
                         add_txmsg_uchar(rply, uchar(',')); // add comma between items
                     }
-                    HBmqtt.print_own_val(i, buf);
-                    add_txmsg_z_str(rply, buf);
+                    if (HBmqtt.flag[ti].val_type)           // value is valid
+                    {
+                        HBmqtt.print_own_val(ti, buf);
+                        add_txmsg_z_str(rply, buf);
+                    }
+                    else
+                    {
+                        add_txmsg_uchar(rply,(uchar)'-');   // value is invalid
+                        buf[0] = '-';
+                    }
                 }
-            }
+            }            
             add_txmsg_uchar(rply, ']');
             add_txmsg_uchar(rply, '}');
         }
         else // DF = binary, other formats not implemented yet
         {
             add_txmsg_uchar(rply, MAX_TOPIC);
-            for (uchar i=0; i<MAX_TOPIC; i++)
+            for (uchar ti=0; ti<MAX_TOPIC; ti++)
             {
-                tpc = ownTopicId[i];
+                tpc = ownTopicId[ti];
                 add_txmsg_uchar(rply, (uchar)(tpc >> 8));
                 add_txmsg_uchar(rply, (uchar)tpc);
             }
@@ -384,60 +392,54 @@ uchar HB_cmd::rply_boot(hb_msg_t* rxmsg, hb_msg_t* rply)
     if ((rxmsg->encrypt) || (node.allow.boot))
     {
         
-        if (i2cbb.EE_busy)
+        uchar bcnt = rxmsg->buf[12];                        // byte count
+        uint addr = 0x100*rxmsg->buf[13] + rxmsg->buf[14];  // address
+        uchar rectype = rxmsg->buf[15];                     // record type
+        res = ERR;
+        if ((bcnt) && (rectype <= 1))                       // record types 0 and 1 are OK
         {
-            res = ERR_BUSY;
-        }
-        else
-        {
-            uchar bcnt = rxmsg->buf[12];                        // byte count
-            uint addr = 0x100*rxmsg->buf[13] + rxmsg->buf[14];  // address
-            uchar rectype = rxmsg->buf[15];                     // record type
-            res = ERR;
-            if ((bcnt) && (rectype <= 1))                       // record types 0 and 1 are OK
+            if (addr >= 0x400)                              // it is a chunk of code 
             {
-                if (addr >= 0x400)                              // it is a chunk of code 
+                res = i2cbb.write_EE(rxmsg->buf + 16, addr, bcnt);
+                node.boot_in_progr = 100;   // supress Tx for 100 ms
+            }
+            else if ((addr == 0x0010) && (bcnt == 8))       // it is descriptor for bootloader
+            {
+                res = ERR_PARAM;
+                if ((rxmsg->buf[16] == 0x55) && (rxmsg->buf[17] == 0xAA))       // pattern
                 {
-                    res = i2cbb.write_EE(rxmsg->buf + 16, addr, bcnt);
-                }
-                else if ((addr == 0x0010) && (bcnt == 8))       // it is descriptor for bootloader
-                {
-                    res = ERR_PARAM;
-                    if ((rxmsg->buf[16] == 0x55) && (rxmsg->buf[17] == 0xAA))       // pattern
+                    if ((rxmsg->buf[18] == 0xC3) && (rxmsg->buf[19] == 0x3C))   // pattern
                     {
-                        if ((rxmsg->buf[18] == 0xC3) && (rxmsg->buf[19] == 0x3C))   // pattern
+                        uint codelen = 0x100*rxmsg->buf[20] + rxmsg->buf[21];   
+                        uint rxcrc = 0x100*rxmsg->buf[22] + rxmsg->buf[23];    
+                        uint eecrc = i2cbb.crc_EE(codelen);
+                        PRINT("Codelen=");
+                        PRINT(codelen);
+                        PRINT(", rxcrc=");
+                        PRINT(rxcrc);
+                        PRINT(", eecrc=");
+                        PRINTLN(eecrc);
+                        if (rxcrc == eecrc)                                     // if crc matched
                         {
-                            uint codelen = 0x100*rxmsg->buf[20] + rxmsg->buf[21];   
-                            uint rxcrc = 0x100*rxmsg->buf[22] + rxmsg->buf[23];    
-                            uint eecrc = i2cbb.crc_EE(codelen);
-                            PRINT("Codelen=");
-                            PRINT(codelen);
-                            PRINT(", rxcrc=");
-                            PRINT(rxcrc);
-                            PRINT(", eecrc=");
-                            PRINTLN(eecrc);
-                            if (rxcrc == eecrc)                                     // if crc matched
+                            res = i2cbb.write_EE(rxmsg->buf + 16, 0x0010, 8);  // write descriptor
+                            if (res == OK)
                             {
-                                res = i2cbb.write_EE(rxmsg->buf + 16, 0x0010, 8);  // write descriptor
-                                if (res == OK)
-                                {
-                                    PRINTLN("Rebooting, please wait...");
-                                    node.rst_cnt = 15;      // reset in 150 ms
-                                }
-                                else
-                                {
-                                    PRINTLN(" ==> ERROR: EEPROM error, abort");
-                                }
+                                PRINTLN("Rebooting, please wait...");
+                                node.rst_cnt = 15;      // reset in 150 ms
                             }
                             else
                             {
-                                PRINT(" ==> ERROR: CRC mismatch, eecrc=");
-                                PRINT(eecrc);
-                                PRINT(", rxcrc=");
-                                PRINT(rxcrc);
-                                PRINTLN(", abort");
-                                res = ERR_CRC;
+                                PRINTLN(" ==> ERROR: EEPROM error, abort");
                             }
+                        }
+                        else
+                        {
+                            PRINT(" ==> ERROR: CRC mismatch, eecrc=");
+                            PRINT(eecrc);
+                            PRINT(", rxcrc=");
+                            PRINT(rxcrc);
+                            PRINTLN(", abort");
+                            res = ERR_CRC;
                         }
                     }
                 }
@@ -472,11 +474,6 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
     char* str;
     uint addr;
     uchar buf[0x40];
-    if (i2cbb.EE_busy)
-    {
-        this->prep_rply_hdr(rxmsg, rply,  ERR_BUSY);
-        return READY;
-    }
     rdwr = rxmsg->buf[7] & 1; 
     str_no = rxmsg->buf[7] >> 1;   // 0 - name, 1 - location, 2 - description
     switch (str_no)
@@ -735,16 +732,23 @@ uchar  HB_cmd::rply_topic(hb_msg_t* rxmsg, hb_msg_t* rply)
     if ((rxmsg->encrypt) || (node.allow.topic))
     {
         uchar ti = rxmsg->buf[7];               // get topic index
-        if (HBmqtt.flag[ti].topic_name)
+        if (HBmqtt.flag[ti].topic_name_valid)
         {
             this->prep_rply_hdr(rxmsg, rply, OK);
             add_txmsg_uchar(rply, (uchar)(ownTopicId[ti] >> 8));
             add_txmsg_uchar(rply, (uchar)ownTopicId[ti]);
             char buf[0x40];
-            uchar len = copy_topic(ti, buf);
+            uchar len = HBmqtt.copy_topic_name(ti, buf);
             for (uchar i=0; i<len; i++)
             {
                 add_txmsg_uchar(rply, (char)buf[i]);
+            }
+            if (HBmqtt.flag[ti].val_type)    // if value valid
+            {
+                add_txmsg_uchar(rply, (uchar)',');
+                add_txmsg_uchar(rply, (uchar)' ');
+                HBmqtt.print_own_val(ti, buf);
+                add_txmsg_z_str(rply, buf);
             }
         }
         else

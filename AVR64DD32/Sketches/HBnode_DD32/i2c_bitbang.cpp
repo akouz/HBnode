@@ -163,13 +163,28 @@ uint I2Cbb::crc_EE(uint codelen)
     return crcx;
 }
 // ============================================
+// Wait while EEPROM is busy
+// ============================================
+void I2Cbb::wait_EE(void)
+{
+    for (uchar i=0; i<60; i++) // time-out 6 ms
+    {
+        delay(100);
+    }
+    this->EE_busy = 0;
+}
+// ============================================
 // Read EEPROM to buffer
 // ============================================
 uchar I2Cbb::read_EE(uchar* buf, uint adrr, uint len) 
 {
     uint i;
     uchar res = ERR; 
-    if ((len) && (this->EE_busy == 0))
+    if (this->EE_busy)
+    {
+        this->wait_EE(); 
+    }    
+    if (len)
     {
         this->start();
         // send device addr (A0,A1=low, A2=high), write
@@ -196,12 +211,12 @@ uchar I2Cbb::read_EE(uchar* buf, uint adrr, uint len)
 uchar I2Cbb::write_EE(uchar* buf, uint adrr, uchar len) 
 {
     uint i;
-    uchar res = ERR; 
-    if (buf == NULL)
+    uchar res = ERR;
+    if (this->EE_busy)
     {
-        PRINTLN(" buf=NULL");
-    }
-    if ((len) && (this->EE_busy == 0))
+        this->wait_EE(); 
+    }    
+    if (len) 
     {
         this->start();
         // send device addr (A0,A1=low, A2=high), write
@@ -232,7 +247,7 @@ uchar I2Cbb::write_EE(uchar* buf, uint adrr, uchar len)
         }    
         this->stop();
         if (0 == res)
-           this->EE_busy = 10;      // wait 10 ms until write finished
+           this->EE_busy = 6;      // wait 6 ms until write finished
     }
     return res;
 }        

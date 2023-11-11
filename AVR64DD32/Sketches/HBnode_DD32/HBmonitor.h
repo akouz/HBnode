@@ -84,6 +84,7 @@ class Mon{
         void  EEclr(void);
         void  EEcrc(void);
         void  reset(void);
+        void  topic(void);
         void  parse_notblank_char(char cc, char* buf);
         void  parse_blank_char(char* buf);
         slong dval = 0;             // decimal number

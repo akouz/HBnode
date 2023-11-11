@@ -63,10 +63,10 @@ extern uint ownTopicId[];
 union mq_flag_uni{
     uchar all;
     struct{
-        unsigned    val_type    : 4;
-        unsigned    topic       : 1;
-        unsigned    topic_name  : 1;
-        unsigned                : 2;
+        unsigned    val_type            : 4;
+        unsigned    topic_valid         : 1;
+        unsigned    topic_name_valid    : 1;
+        unsigned                        : 2;
     };
 };
 union mq_value_uni{
@@ -82,9 +82,10 @@ class HB_mqtt{
         HB_mqtt(void);
         hb_msg_t  mqmsg;
         union mq_flag_uni   flag[MAX_TOPIC];                // set of flags
+        uchar       copy_topic_name(uchar ti, char *buf);
         uchar       validate_topics(void);
         uchar       rd_msg(hb_msg_t* msg);
-        hb_msg_t*   publish_own_val(uint idx);           // make PUBLISH message for own value
+        hb_msg_t*   publish_own_val(uint idx);              // make PUBLISH message for own value
         uchar       init_topic_id(uint node_id);            // after power-up call this function
                                                             // repeatedly until it returns OK
         uint        print_own_val(uchar idx, char* buf);
@@ -116,7 +117,5 @@ class HB_mqtt{
 };
 
 extern HB_mqtt HBmqtt;
-
-uchar copy_topic(uchar i, char* buf);
 
 #endif /* __HB_MQTT_H */

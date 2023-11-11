@@ -74,7 +74,8 @@ class I2Cbb{
         uchar pulse(void);
         uchar sbyte(uchar val);
         uchar rbyte(uchar nack);
-        void send_byte(uchar val);
+        void  send_byte(uchar val);
+        void  wait_EE(void);
         uchar print_str(char* buf, uchar crlf, char quotes);
         uchar print_char(char val, uchar crlf);
         uchar print_uchar(uchar val, uchar crlf);

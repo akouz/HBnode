@@ -227,6 +227,7 @@ struct node_struct{
   uchar rst_cnt;        // 10 ms ticks, reset when changed from 1 to 0
   uint led_cnt;         // until LED switched off, in 10 ms ticks
   uchar pause_cnt;
+  uchar boot_in_progr;  // when boot is in progress
 };
 extern struct node_struct node;
 
