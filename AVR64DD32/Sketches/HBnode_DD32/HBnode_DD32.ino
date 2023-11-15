@@ -85,7 +85,7 @@ void coos_task0(void)
 // check next topic and broadcast its value if value is valid
 void coos_task_broadcast_val(void)
 {
-    hb_msg_t*  msg;
+    //hb_msg_t*  msg;
     static uchar idx = 0;    // topic index
     static uchar topic_id_refresh = 250;
     COOS_DELAY(5000);                                   // initial pause 5 sec
@@ -109,7 +109,8 @@ void coos_task_broadcast_val(void)
         {
             if ((HBmqtt.flag[idx].val_type) && (HBmqtt.flag[idx].topic_valid))  // broadcast only valid values
             {
-                msg = HBmqtt.publish_own_val(idx);
+                // msg = HBmqtt.publish_own_val(idx);
+                HBmqtt.publish_own_val(idx);
             }
             if (++idx >= MAX_TOPIC)
             {

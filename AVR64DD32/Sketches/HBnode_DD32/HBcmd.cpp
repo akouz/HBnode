@@ -53,41 +53,61 @@ HB_cmd::HB_cmd(void)
     this->cmd_reply.len = 0;
     this->cmd_reply.all = 0;
     this->custom_cmd = NULL;
-    this->read_EE_security();
+    if (OK != this->read_EE_security())
+    {
+        PRINTLN(" Security read error");
+    }
 }
 // =====================================
 // Read security settings from EEPROM
 // =====================================
-void HB_cmd::read_EE_security(void)
+uchar HB_cmd::read_EE_security(void)
 {
     uchar buf[0x20];
+    uchar res = ERR;
     node.allow.all = 0xFFFF;    // default: enable unecrypted access to all commands
-    if (node.ID < 0x800)        // if permanent NodeID assigned
+    if (node.ID < 0xF000)        // if permanent NodeID assigned
     {
-        i2cbb.read_EE(buf, EE_XTEA_KEY, 0x18);
-        uchar offset = EE_SECURITY - EE_XTEA_KEY;
-        uint val = 0x100*(uint)buf[offset] + buf[offset+1];
-        uint notval = 0x100*(uint)buf[offset+2] + buf[offset+3]; // inverted
-        notval = (~notval) & 0xFFFF;
-        if (val == notval)              // if direct and inverted values are the same
+        res = i2cbb.read_EE(buf, EE_XTEA_KEY, 0x18);
+        if (res == OK)
         {
-            node.allow.all = val;      // HBus mode settings
-        }
-        else // if values not matched but EEPROM key valid then unencrypted access restricted
-        {
-            uint crc = calc_crc(buf, 16);
-            uint bufcrc = 0x100*buf[16] + buf[17];
-            if (bufcrc == crc) // key valid
+            uchar offset = EE_SECURITY - EE_XTEA_KEY;
+            uint val = 0x100*(uint)buf[offset] + buf[offset+1];
+            uint notval = 0x100*(uint)buf[offset+2] + buf[offset+3]; // inverted
+            notval = (~notval) & 0xFFFF;
+            if (val == notval)              // if direct and inverted values are the same
             {
-                node.allow.all = 0; 
-                node.allow.rev = 1;
-                node.allow.status = 1;
-                node.allow.rddescr = 1;
-                node.allow.rdsecurity = 1;
-                node.allow.ignore_ts = 1; 
-            }            
+                node.allow.all = val;      // HBus mode settings
+            }
+            else // if values not matched but EEPROM key valid then unencrypted access restricted
+            {
+                uint crc = calc_crc(buf, 16);
+                uint bufcrc = 0x100*buf[16] + buf[17];
+                if (bufcrc == crc) // key valid
+                {
+                    node.allow.all = 0; 
+                    node.allow.rev = 1;
+                    node.allow.status = 1;
+                    node.allow.rddescr = 1;
+                    node.allow.rdsecurity = 1;
+                    node.allow.ignore_ts = 1; 
+                    PRINT(" Key CRC valid, use default settings, ");
+                }            
+                else
+                {
+                    PRINT(" Key CRC invalid, allow all, ");    
+                }
+                res = ERR;            
+            }
         } 
+        else
+            PRINT(" EE read failed, allow all");
     }
+    else
+    {
+        PRINT(" Temp NodeID, allow all");
+    }
+    return res;
 }
 // =====================================
 // Process input commands, form a reply if required
@@ -98,7 +118,7 @@ hb_msg_t* HB_cmd::process_rx_cmd(hb_msg_t* rxmsg)
     uchar res = 0; // no reply
     if ((rxmsg) && (this->cmd_reply.busy == 0) && (rxmsg->hb) && (rxmsg->len >= 12))
     {
-        //DBG_PRINT(" HB_command ");
+        //PRINT(" HB_command ");
         this->cmd_reply.hb = rxmsg->hb;
         cmd = rxmsg->buf[0];
         // ----------------------------
@@ -598,12 +618,11 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
             res = OK;
             newval = 0x100*rxmsg->buf[12] + rxmsg->buf[13]; 
             if (newval != node.allow.all)  // if new settings are different
-            {
-                uchar offset = EE_SECURITY - EE_XTEA_KEY;
-                buf[offset] = rxmsg->buf[12];
-                buf[offset+1] = rxmsg->buf[13];
-                buf[offset+2] = (uchar)(~rxmsg->buf[12]);
-                buf[offset+3] = (uchar)(~rxmsg->buf[13]);
+            {                
+                buf[0] = rxmsg->buf[12];
+                buf[1] = rxmsg->buf[13];
+                buf[2] = ~rxmsg->buf[12];
+                buf[3] = ~rxmsg->buf[13];
                 wrbuf = 1; // write new security
             }
             // store EEPROM key
@@ -620,8 +639,14 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
                         }
                     }
                     uint crc = calc_crc(buf, 16);
-                    buf[16] = (uchar)(crc >> 8);
-                    buf[17] = (uchar)crc;
+                    buf[0x10] = (uchar)(crc >> 8);
+                    buf[0X11] = (uchar)crc;
+                    buf[0X12] = 0xFF;
+                    buf[0X13] = 0xFF;
+                    buf[0x14] = rxmsg->buf[12];
+                    buf[0x15] = rxmsg->buf[13];
+                    buf[0x16] = ~rxmsg->buf[12];
+                    buf[0x17] = ~rxmsg->buf[13];
                     wrbuf |= 2;  // write key                    
                 }
                 else
@@ -633,7 +658,7 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
         switch (wrbuf & 3)
         {
         case 1: // write security only
-            res = i2cbb.write_EE(buf, EE_SECURITY, 4);
+            res = i2cbb.write_EE(buf, (uint)EE_SECURITY, 4);
             PRINT(" New_security");
             if (res == OK)
             {
@@ -670,7 +695,7 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
         }
         else if (res == ERR)
         {
-            PRINTLN(" failed");
+            PRINTLN(" failed to store");
         }
         this->prep_rply_hdr(rxmsg, rply, res);
         add_txmsg_uchar(rply, (uchar)(node.allow.all >> 8));

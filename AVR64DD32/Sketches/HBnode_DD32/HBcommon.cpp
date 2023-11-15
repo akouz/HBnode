@@ -317,15 +317,12 @@ void copy_msg_hdr(hb_msg_t* src, uchar first, uchar last, hb_msg_t* txmsg)
 // =============================================
 void add_ts(hb_msg_t* txmsg)
 {
-    union {
-        ulong   ulo;
-        uchar   uch[4];
-    } tmp;
+    union ulo_uni tmp;
     tmp.ulo = coos.uptime;
-    for (uchar i=0; i<4; i++)
-    {
-        add_txmsg_uchar(txmsg, tmp.uch[3-i]);
-    }
+    add_txmsg_uchar(txmsg, tmp.uch[3]);
+    add_txmsg_uchar(txmsg, tmp.uch[2]);
+    add_txmsg_uchar(txmsg, tmp.uch[1]);
+    add_txmsg_uchar(txmsg, tmp.uch[0]);
 }
 // =============================================
 // Finish Tx message

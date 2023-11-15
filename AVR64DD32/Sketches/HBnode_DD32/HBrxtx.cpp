@@ -97,6 +97,7 @@ uchar Hb_rxtx::add_rx_uchar(uchar val, hb_msg_t* dest)
                     {
                         res = READY;    // message completed, rx buffer ready
                         dest->gate = 0;
+                        dest->ts_ok = 0;
                         // BUF_PRINTLN((uchar*)dest->buf, (uchar)dest->len);
                     }
                     break;
@@ -176,7 +177,54 @@ uchar Hb_rxtx::check_crc(hb_msg_t* msg)
     }
     return ERR;
 }
-
+// =============================================
+// Check time stamp
+// =============================================
+uchar Hb_rxtx::check_ts(hb_msg_t* msg)
+{
+    ulo_uni ts;
+    if (node.allow.ignore_ts)
+    {
+        if (coos.uptime < 0x10000000)
+        {
+            ts.uch[0] = msg->buf[11];
+            ts.uch[1] = msg->buf[10];
+            ts.uch[2] = msg->buf[9];
+            ts.uch[3] = msg->buf[8];
+            if (ts.ulo > 0x10000000)
+            {
+                DBG_PRINTLN(" TS accepted");
+                coos.uptime = ts.ulo; // accept as initial value
+            }
+        }
+        msg->ts_ok = 1;    
+        return OK;
+    }
+    else
+    {
+        ts.uch[0] = msg->buf[11];
+        ts.uch[1] = msg->buf[10];
+        ts.uch[2] = msg->buf[9];
+        ts.uch[3] = msg->buf[8];
+        if ((coos.uptime + TIME_TOLERANCE > ts.ulo) || (coos.uptime < ts.ulo + TIME_TOLERANCE))
+        {
+            msg->ts_ok = 1;    
+            return OK;
+        }
+        else if ((coos.uptime < 0x10000000) && (ts.ulo > 0x10000000))
+        {
+            DBG_PRINTLN(" TS accepted");
+            coos.uptime = ts.ulo; // accept as initial value
+            msg->ts_ok = 1;    
+            return OK;
+        }
+        else
+        {
+            msg->ts_ok = 0;    
+        }
+    }
+    return ERR;
+}
 // =============================================
 // Receive symbol (while in receive mode)
 // =============================================
@@ -194,8 +242,17 @@ hb_msg_t* Hb_rxtx::rx(uchar val)
             {
                 // blink(5);   // blink 50 ms
                 //DBG_PRINTLN(" rx msg OK");
-                this->rxbuf.busy = 1;
-                return &this->rxbuf;
+                if (this->check_ts(&this->rxbuf) == OK)
+                {
+                    this->rxbuf.busy = 1;
+                    return &this->rxbuf;
+                }
+                else // time stamp mismatch
+                {
+                    DBG_PRINTLN(" Rx reset");    
+                    this->rxbuf.len = 0;     // reset output buffer
+                    this->rxbuf.all = 0;
+                }
             }
             else // crc mismatch
             {

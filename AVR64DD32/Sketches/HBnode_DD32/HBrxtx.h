@@ -81,6 +81,7 @@ class Hb_rxtx{
     uint        calccrc;
     uchar       add_rx_uchar(uchar val, hb_msg_t* dest);
     uchar       check_crc(hb_msg_t* msg);
+    uchar       check_ts(hb_msg_t* msg);
 };
 extern Hb_rxtx HBrxtx;
 

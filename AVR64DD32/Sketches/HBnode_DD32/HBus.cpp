@@ -103,8 +103,6 @@ void coos_task_HBus_rxtx(void)
                         node.seed = (uint)millis(); // randomise
                         if (node.pup_cnt < (node.seed | 0xF00D))  // EEPROM endurance 100k write cycles
                         {
-                            //EEPROM.write(EE_SEED, (uchar)(node_seed >> 8));
-                            //EEPROM.write(EE_SEED+1, (uchar)node_seed);
                             buf[0] = (uchar)(node.seed >> 8);
                             buf[1] = (uchar)node.seed;
                             i2cbb.write_EE(buf, EE_SEED, 2);

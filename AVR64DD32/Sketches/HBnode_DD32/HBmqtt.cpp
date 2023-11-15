@@ -694,7 +694,7 @@ hb_msg_t *HB_mqtt::publish_own_val(uint idx)
             mqmsg.encrypt = (node.allow.broadcast) ? 0 : 1; // can send unencrypted?
             mqmsg.hb = 0;
             mqmsg.valid = 1;
-            return &mqmsg;
+            return &mqmsg;  
         }
     }
     return NULL;

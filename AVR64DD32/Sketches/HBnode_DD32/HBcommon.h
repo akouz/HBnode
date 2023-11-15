@@ -46,6 +46,7 @@
 
 #define DBG_PRINT(x)      i2cbb.print(x)
 #define DBG_PRINTLN(x)    i2cbb.println(x)
+#define BUF_PRINT(x,y)    i2cbb.print(x,y)
 #define BUF_PRINTLN(x,y)  i2cbb.println(x,y)
 
 #define MAX_BUF       0x90
@@ -165,7 +166,7 @@ typedef struct{
       unsigned esc      : 1;
       unsigned hb       : 1;
       unsigned encrypt  : 1;
-      unsigned ts_ok    : 1;
+      unsigned ts_ok    : 1; // timestamp matched
       unsigned valid    : 1;
       unsigned busy     : 1;
     };
@@ -173,6 +174,11 @@ typedef struct{
 }hb_msg_t;
 #endif
 
+union ulo_uni {
+  ulong ulo;    // uch[0]_uch[1]_uch[2]_uch[3] = ui[0]_ui[1]
+  uint ui[2];   // ui[0] = uch[0]_uch[1];  ui[1] = uch[2]_uch[3]
+  uchar uch[4];   
+};
 
 //##############################################################################
 // Inc
@@ -225,7 +231,7 @@ struct node_struct{
       };
   } allow;    // allowed unecrypted access
   uchar rst_cnt;        // 10 ms ticks, reset when changed from 1 to 0
-  uint led_cnt;         // until LED switched off, in 10 ms ticks
+  uint  led_cnt;        // until LED switched off, in 10 ms ticks
   uchar pause_cnt;
   uchar boot_in_progr;  // when boot is in progress
 };
