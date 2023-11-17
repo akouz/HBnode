@@ -14,11 +14,11 @@ Using FT200XD and HBus sketch it is possible to to do the following:
 * NODEID -- read HBus node ID 
 * xxxx NODEID -- assign node ID xxxx to a blank board
 * NAME -- read node name (optional)
-* TXT NAME -- assign node name TXT
+* txt NAME -- assign node name txt
 * LOCATION -- read node location  (optional)
-* TXT LOCATION -- assign node location TXT
+* txt LOCATION -- assign node location txt
 * DESCR -- read node description  (optional)
-* TXT DESCR -- assign node description TXT
+* txt DESCR -- assign node description txt
 * addr len EERD -- read len bytes from I2C EEPROM starting at address addr
 * addr len EECLR -- clear len bytes in the I2C EEPROM starting at address addr
 * TOPIC -- read topic names and topic IDs; if topic value is valid it will be displayed too
