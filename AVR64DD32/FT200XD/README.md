@@ -4,7 +4,7 @@ Test jig based on [FT200XD](https://ftdichip.com/products/ft200xd/) chip. Jig co
 
 Use Windows Device Manager to configure FT200XD, it should operate as a virtual com port (VCP). Then use any hyperterminal to talk to HBnode monitor; [PuTTY](https://www.putty.org/) is recommended. 
 
-After power-up HBus sketches usually send to FT200XD a welcome screen, as shown in the following example:
+After power-up HBus sketches usually sends to FT200XD a welcome screen, as shown in the following example:
 ![power_up](https://github.com/akouz/HBnode/blob/main/AVR64DD32/FT200XD/Power_up.png)
 
 Using FT200XD and HBus sketch it is possible to to do the following:
