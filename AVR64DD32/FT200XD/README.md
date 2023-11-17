@@ -21,3 +21,4 @@ Using FT200XD and HBus sketch it is possible to to do the following:
 * TXT DESCR -- assign node description TXT
 * addr len EERD -- read len bytes from I2C EEPROM starting at address addr
 * addr len EECLR -- clear len bytes in the I2C EEPROM starting at address addr
+* TOPIC -- read topic names and topic IDs; if topic value is valid it will be displayed too
