@@ -133,38 +133,38 @@ void coos_task_1ms(void)
     COOS_DELAY(1);
     if (i2cbb.EE_busy)
     {
-        i2cbb.EE_busy--;  // count EEPROM delay  
+      i2cbb.EE_busy--;  // count EEPROM delay  
     }  
     if (node.pause_cnt < 200)
     {
-        node.pause_cnt++;
+      node.pause_cnt++;
     }
     if (node.boot_in_progr)
     {
-        node.boot_in_progr--;
+      node.boot_in_progr--;
     }
     if (++cnt >= 10)  // 10 ms
     {
-        cnt = 0;
-        HBcmd.tick10ms();
-        if (OK == mon.Rx()) // when monitor command string ready
+      cnt = 0;
+      HBcmd.tick10ms();
+      if (OK == mon.Rx()) // when monitor command string ready
+      {
+        mon.parse();
+        mon.exe();
+      }
+      if (node.rst_cnt)
+      {
+        node.rst_cnt--;
+        if (node.rst_cnt == 0)  // must reset
         {
-          mon.parse();
-          mon.exe();
-        }
-        if (node.rst_cnt)
-        {
-          node.rst_cnt--;
-          if (node.rst_cnt == 0)  // must reset
+          CCP = IOREG;          // unlock
+          RSTCTRL.SWRR = 1;     // software reset
+          while(1)              // not required really...
           {
-            CCP = IOREG;          // unlock
-            RSTCTRL.SWRR = 1;     // software reset
-            while(1)              // not required really...
-            {
-              Nop();    
-            }
+            Nop();    
           }
         }
+      }
     }
   }
 }  
@@ -274,6 +274,8 @@ void setup()
   digitalWrite(GLED, LOW);    // green LED on
   set_xtal_24MHz();
   Serial1.begin(19200);
+  CCL_config();
+  EVSYS_config();
   print_hdr_txt();
   PRINTLN();
   PRINTLN();

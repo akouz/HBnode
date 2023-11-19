@@ -57,6 +57,13 @@ void clr_rx(void)
 // ========================================
 void  finish_tx(hb_msg_t* msg)
 {
+    /*
+    if (CCL.INTFLAGS & 2)
+    {
+        CCL.INTFLAGS = 0;
+        PRINTLN(" collision detected");
+    }
+    */
     if (msg)
     {
         msg->busy = 0;
@@ -186,6 +193,7 @@ void coos_task_HBus_rxtx(void)
                                         }
                                         else    // echo mismatch
                                         {
+                                            PRINTLN(" HBus collision");
                                             Serial1.end();
                                             COOS_DELAY(random(10));
                                             Serial1.begin(19200);
@@ -266,6 +274,7 @@ void coos_task_HBus_rxtx(void)
                             }
                             else    // echo mismatch
                             {
+                                PRINTLN(" HBus collision");
                                 Serial1.end();
                                 COOS_DELAY(random(10));
                                 Serial1.begin(19200);

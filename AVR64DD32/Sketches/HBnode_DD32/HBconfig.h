@@ -55,6 +55,8 @@
 // rev 0.16 - restoring HBus functionality
 // rev 0.17 - handles HBus time stamps; rply_security() uses a workaround and operates 
 //            correctly disregards to phenomena with passing parameters to functions 
+// rev 0.18 - implementing CSMA/CA using CCL and EVSYS
+// rev 0.19 - improved CSMA/CA implemetation, see CCL_config() 
 
 //##############################################################################
 // Def
@@ -70,7 +72,7 @@
 #define HW_REV_MIN    0
 #define SKETCH_NAME   "HBnode_DD32.ino"
 #define SW_REV_MAJ    0
-#define SW_REV_MIN    17
+#define SW_REV_MIN    19
 
 #define SW_REV  (0x100*SW_REV_MAJ + SW_REV_MIN)
 

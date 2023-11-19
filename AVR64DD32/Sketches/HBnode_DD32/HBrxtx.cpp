@@ -178,43 +178,51 @@ uchar Hb_rxtx::check_crc(hb_msg_t* msg)
     return ERR;
 }
 // =============================================
-// Check time stamp
+// Accept time stamp as internal time
 // =============================================
-uchar Hb_rxtx::check_ts(hb_msg_t* msg)
+uchar accept_ts(hb_msg_t* msg)
 {
-    ulo_uni ts;
-    if (node.allow.ignore_ts)
+    if (msg->buf[8] > 0x10) 
     {
         if (coos.uptime < 0x10000000)
         {
+            ulo_uni ts;
+            DBG_PRINTLN(" TS accepted");
             ts.uch[0] = msg->buf[11];
             ts.uch[1] = msg->buf[10];
             ts.uch[2] = msg->buf[9];
             ts.uch[3] = msg->buf[8];
-            if (ts.ulo > 0x10000000)
-            {
-                DBG_PRINTLN(" TS accepted");
-                coos.uptime = ts.ulo; // accept as initial value
-            }
+            coos.uptime = ts.ulo; // accept as initial value
+            return OK;
         }
+    }
+    return ERR;
+}
+// =============================================
+// Check time stamp
+// =============================================
+uchar Hb_rxtx::check_ts(hb_msg_t* msg)
+{
+    if (node.allow.ignore_ts)
+    {
+        accept_ts(msg);
         msg->ts_ok = 1;    
         return OK;
     }
     else
     {
+        ulo_uni ts;
         ts.uch[0] = msg->buf[11];
         ts.uch[1] = msg->buf[10];
         ts.uch[2] = msg->buf[9];
         ts.uch[3] = msg->buf[8];
-        if ((coos.uptime + TIME_TOLERANCE > ts.ulo) || (coos.uptime < ts.ulo + TIME_TOLERANCE))
+        if ((coos.uptime + TIME_TOLERANCE > ts.ulo) && (coos.uptime < ts.ulo + TIME_TOLERANCE))
         {
             msg->ts_ok = 1;    
             return OK;
         }
-        else if ((coos.uptime < 0x10000000) && (ts.ulo > 0x10000000))
-        {
-            DBG_PRINTLN(" TS accepted");
-            coos.uptime = ts.ulo; // accept as initial value
+        else if (OK == accept_ts(msg))
+        {            
             msg->ts_ok = 1;    
             return OK;
         }
@@ -223,6 +231,7 @@ uchar Hb_rxtx::check_ts(hb_msg_t* msg)
             msg->ts_ok = 0;    
         }
     }
+    DBG_PRINT(" bad_TS ");
     return ERR;
 }
 // =============================================
@@ -241,7 +250,7 @@ hb_msg_t* Hb_rxtx::rx(uchar val)
             if ((this->flag.no_crc) || (OK == check_crc(&this->rxbuf)))  // if crc matches
             {
                 // blink(5);   // blink 50 ms
-                //DBG_PRINTLN(" rx msg OK");
+                // DBG_PRINT(" rx_OK ");
                 if (this->check_ts(&this->rxbuf) == OK)
                 {
                     this->rxbuf.busy = 1;
@@ -274,6 +283,7 @@ uchar Hb_rxtx::start_tx(hb_msg_t* buf)
     {
         return ERR_PARAM;
     }
+    reset_CSMA_CA();                    // reset collision detector
     this->txbuf = buf;
     Serial1.write(priority);
     this->echobuf[0] = this->priority;

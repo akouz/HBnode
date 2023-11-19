@@ -185,9 +185,16 @@ hb_msg_t* HB_cmd::process_rx_cmd(hb_msg_t* rxmsg)
 // =====================================
 // Prepare reply header
 // =====================================
-void  HB_cmd::prep_rply_hdr(hb_msg_t* rxmsg, hb_msg_t* rply, uchar okerr)
+void  HB_cmd::prep_rply_hdr(hb_msg_t* rxmsg, hb_msg_t* rply)
 {
-    copy_msg_hdr(rxmsg, 0, 6, rply);
+    //copy_msg_hdr(rxmsg, 0, 6, rply);
+    copy_msg_hdr_0_6(rxmsg, rply);
+}
+// =====================================
+// Add nonce, timestamp and OK/ERR to reply header
+// =====================================
+void  HB_cmd::add_to_hdr(hb_msg_t* rply, uchar okerr)
+{
     add_txmsg_uchar(rply, random(0x100));  // nonce
     add_txmsg_uchar(rply, okerr);
     add_ts(rply);                           // timestamp
@@ -199,7 +206,8 @@ uchar HB_cmd::rply_unknown(hb_msg_t* rxmsg, hb_msg_t* rply)
 {
     if (!rxmsg->encrypt)
     {
-        this->prep_rply_hdr(rxmsg, rply, ERR_UNKNOWN);
+        this->prep_rply_hdr(rxmsg, rply);
+        this->add_to_hdr(rply, ERR_UNKNOWN);
         return READY;
     }
     return ERR_SECURITY; // do not reply to unknown encrypted commands
@@ -212,7 +220,8 @@ uchar HB_cmd::rply_rev(hb_msg_t* rxmsg, hb_msg_t* rply)
 {
     if ((rxmsg->encrypt) || (node.allow.rev))
     {
-        this->prep_rply_hdr(rxmsg, rply, OK);
+        this->prep_rply_hdr(rxmsg, rply);
+        this->add_to_hdr(rply, OK);
         add_txmsg_uchar(rply, HB_DEV_TYPE);
         add_txmsg_uchar(rply, HB_DEV_MODEL);
         add_txmsg_uchar(rply, HB_HW_REV_MAJ);
@@ -236,7 +245,8 @@ uchar HB_cmd::rply_status(hb_msg_t* rxmsg, hb_msg_t* rply)
     if ((rxmsg->encrypt) || (node.allow.status))
     {
         uint tpc;
-        this->prep_rply_hdr(rxmsg, rply, DF_STATUS);
+        this->prep_rply_hdr(rxmsg, rply);
+        this->add_to_hdr(rply, DF_STATUS);
         if (DF_STATUS == 1) // DF = JSON
         {
             // list all topics
@@ -332,10 +342,12 @@ uchar HB_cmd::rply_collect(hb_msg_t* rxmsg, hb_msg_t* rply)
         cmd_reply.hb = rxmsg->hb;
         cmd_reply.encrypt = rxmsg->encrypt;
         begin_txmsg(&cmd_reply, rxmsg->hb);
-        copy_msg_hdr(rxmsg, 0, 3, rply);
+        // copy_msg_hdr(rxmsg, 0, 3, rply);
+        copy_msg_hdr_0_3(rxmsg, rply);
         add_txmsg_uchar(rply, node.id[1]);
         add_txmsg_uchar(rply, node.id[0]);
-        copy_msg_hdr(rxmsg, 5, 6, rply);
+        // copy_msg_hdr(rxmsg, 5, 6, rply);
+        copy_msg_hdr_5_6(rxmsg, rply);
         add_txmsg_uchar(rply, random(0x100)); // nonce
         add_txmsg_uchar(rply, OK);
         add_ts(rply);   // timestamp
@@ -358,7 +370,8 @@ uchar HB_cmd::rply_ping(hb_msg_t* rxmsg, hb_msg_t* rply)
     if ((rxmsg->encrypt) || (node.allow.ping))
     {
         this->ignore_collect = (uint)rxmsg->buf[7]*100;  // supplied interval in sec, convert it into 10 ms ticks
-        this->prep_rply_hdr(rxmsg, rply, OK);
+        this->prep_rply_hdr(rxmsg, rply);
+        this->add_to_hdr(rply, OK);
         return READY;
     }
     return ERR_SECURITY;
@@ -390,10 +403,12 @@ uchar HB_cmd::rply_setID(hb_msg_t* rxmsg, hb_msg_t* rply)
                 i2cbb.write_EE(rxmsg->buf + 12, EE_nodeID, 2);
                 res = OK;
             }
-            copy_msg_hdr(rxmsg, 0, 3, rply);
+            //copy_msg_hdr(rxmsg, 0, 3, rply);
+            copy_msg_hdr_0_3(rxmsg, rply);
             add_txmsg_uchar(rply, (uchar)(node.ID >> 8));
             add_txmsg_uchar(rply, (uchar)node.ID);
-            copy_msg_hdr(rxmsg, 5, 6, rply);
+            //copy_msg_hdr(rxmsg, 5, 6, rply);
+            copy_msg_hdr_5_6(rxmsg, rply);
             add_txmsg_uchar(rply, random(0x100));  // nonce
             add_txmsg_uchar(rply,  res);
             add_ts(rply);   // timestamp
@@ -465,7 +480,8 @@ uchar HB_cmd::rply_boot(hb_msg_t* rxmsg, hb_msg_t* rply)
                 }
             }
         }
-        this->prep_rply_hdr(rxmsg, rply, res);
+        this->prep_rply_hdr(rxmsg, rply);
+        this->add_to_hdr(rply, res);
         return READY;
     }
     return res;
@@ -479,7 +495,8 @@ uchar HB_cmd::rply_beep(hb_msg_t* rxmsg, hb_msg_t* rply)
     if ((rxmsg->encrypt) || (node.allow.ping))
     {
         blink((uint)rxmsg->buf[7]*100);
-        this->prep_rply_hdr(rxmsg, rply, OK);
+        this->prep_rply_hdr(rxmsg, rply);
+        this->add_to_hdr(rply, OK);
         return READY;
     }
     return ERR_SECURITY;
@@ -514,7 +531,8 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
         lim = 62;
         break;
     default:
-        this->prep_rply_hdr(rxmsg, rply,  ERR_PARAM);
+        this->prep_rply_hdr(rxmsg, rply);
+        this->add_to_hdr(rply, ERR_PARAM);
         return READY;
         break;
     }        
@@ -526,7 +544,8 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
 #ifdef DEVICE_DESCRIPTION
         if (str == 2)
         {                
-            this->prep_rply_hdr(rxmsg, rply, ERR);    // cannot write, description is fixed, it is defined in "HBconfig.h"
+            this->prep_rply_hdr(rxmsg, rply);    // cannot write, description is fixed, it is defined in "HBconfig.h"
+            this->add_to_hdr(rply, ERR);
             return READY;
         }    
 #else
@@ -554,7 +573,8 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
                 strcpy(str, (char*)rxmsg->buf+13);
             }
         }
-        this->prep_rply_hdr(rxmsg, rply, res);
+        this->prep_rply_hdr(rxmsg, rply);
+        this->add_to_hdr(rply, res);
         return READY;
 #endif
     }
@@ -575,7 +595,8 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
 #endif
         buf[lim+1] = 0;
         len = (uchar)strlen((char*)buf);
-        this->prep_rply_hdr(rxmsg, rply, res);
+        this->prep_rply_hdr(rxmsg, rply);
+        this->add_to_hdr(rply, res);
         if (res == OK)
         {
             add_txmsg_uchar(rply,  len);
@@ -697,7 +718,8 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
         {
             PRINTLN(" failed to store");
         }
-        this->prep_rply_hdr(rxmsg, rply, res);
+        this->prep_rply_hdr(rxmsg, rply);
+        this->add_to_hdr(rply, res);
         add_txmsg_uchar(rply, (uchar)(node.allow.all >> 8));
         add_txmsg_uchar(rply, (uchar)node.allow.all);
         return READY;
@@ -710,7 +732,8 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
         if ((rxmsg->encrypt) || (node.allow.rdsecurity))
         {
             val = (HBcipher.valid)? OK1 : OK;
-            this->prep_rply_hdr(rxmsg, rply, val);
+            this->prep_rply_hdr(rxmsg, rply);
+            this->add_to_hdr(rply, val);
             add_txmsg_uchar(rply, (uchar)(node.allow.all >> 8));
             add_txmsg_uchar(rply, (uchar)node.allow.all);
             return READY;
@@ -729,12 +752,14 @@ uchar HB_cmd::rply_custom(hb_msg_t* rxmsg, hb_msg_t* rply)
     {
         if (custom_cmd)
         {
-            this->prep_rply_hdr(rxmsg, rply, OK);
+            this->prep_rply_hdr(rxmsg, rply);
+            this->add_to_hdr(rply, OK);
             rply = custom_cmd(rxmsg);        // whatever defined
         }
         else
         {
-            this->prep_rply_hdr(rxmsg, rply, ERR); // custom command not defined
+            this->prep_rply_hdr(rxmsg, rply); 
+            this->add_to_hdr(rply, ERR);  // custom command not defined
         }
         return READY;
     }
@@ -759,7 +784,8 @@ uchar  HB_cmd::rply_topic(hb_msg_t* rxmsg, hb_msg_t* rply)
         uchar ti = rxmsg->buf[7];               // get topic index
         if (HBmqtt.flag[ti].topic_name_valid)
         {
-            this->prep_rply_hdr(rxmsg, rply, OK);
+            this->prep_rply_hdr(rxmsg, rply);
+            this->add_to_hdr(rply, OK);
             add_txmsg_uchar(rply, (uchar)(ownTopicId[ti] >> 8));
             add_txmsg_uchar(rply, (uchar)ownTopicId[ti]);
             char buf[0x40];
@@ -778,7 +804,8 @@ uchar  HB_cmd::rply_topic(hb_msg_t* rxmsg, hb_msg_t* rply)
         }
         else
         {
-            this->prep_rply_hdr(rxmsg, rply, ERR);
+            this->prep_rply_hdr(rxmsg, rply);
+            this->add_to_hdr(rply, ERR);
         }
         return READY;
     }

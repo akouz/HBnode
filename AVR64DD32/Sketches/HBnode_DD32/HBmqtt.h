@@ -80,7 +80,7 @@ union mq_value_uni{
 class HB_mqtt{
     public:
         HB_mqtt(void);
-        hb_msg_t  mqmsg;
+        hb_msg_t    mqmsg;
         union mq_flag_uni   flag[MAX_TOPIC];                // set of flags
         uchar       copy_topic_name(uchar ti, char *buf);
         uchar       validate_topics(void);

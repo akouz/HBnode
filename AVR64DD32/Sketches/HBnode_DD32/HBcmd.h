@@ -70,7 +70,8 @@ class HB_cmd{
     uint        ignore_collect;         // in 10 ms ticks
     hb_msg_t    cmd_reply;
     uchar       read_EE_security(void);
-    void        prep_rply_hdr(hb_msg_t* rxmsg, hb_msg_t* rply, uchar okerr);
+    void        prep_rply_hdr(hb_msg_t* rxmsg, hb_msg_t* rply);
+    void        add_to_hdr(hb_msg_t* rply, uchar okerr);
     uchar       rply_unknown(hb_msg_t* rxmsg, hb_msg_t* rply);
     uchar       rply_rev(hb_msg_t* rxmsg, hb_msg_t* rply);
     uchar       rply_status(hb_msg_t* rxmsg, hb_msg_t* rply);

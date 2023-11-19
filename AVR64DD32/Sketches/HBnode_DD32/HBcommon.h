@@ -265,12 +265,19 @@ void crc_to_msg(hb_msg_t* msg);
 uchar begin_txmsg(hb_msg_t* txmsg, uchar hb);
 uchar add_txmsg_uchar(hb_msg_t* txmsg, uchar c);
 uchar add_txmsg_z_str(hb_msg_t* txmsg, char* str);
-void copy_msg_hdr(hb_msg_t* src, uchar first, uchar last, hb_msg_t* txmsg);
+
+void copy_msg_hdr_0_6(hb_msg_t* src, hb_msg_t* txmsg);
+void copy_msg_hdr_0_3(hb_msg_t* src, hb_msg_t* txmsg);
+void copy_msg_hdr_5_6(hb_msg_t* src, hb_msg_t* txmsg);
+
 void add_ts(hb_msg_t* txmsg);
 uchar finish_txmsg(hb_msg_t* txmsg);
 
-uchar ts_valid(hb_msg_t* rxmsg);
+// uchar ts_valid(hb_msg_t* rxmsg);
 uchar sort(uint* arr, uint len);
 
+void EVSYS_config(void);
+void CCL_config(void);
+void reset_CSMA_CA(void);
 
 #endif /* __HB_COMMON_H */

@@ -297,9 +297,37 @@ uchar add_txmsg_z_str(hb_msg_t* txmsg, char* str)
 // =============================================
 // Copy message header
 // =============================================
-void copy_msg_hdr(hb_msg_t* src, uchar first, uchar last, hb_msg_t* txmsg)
+void copy_msg_hdr_0_6(hb_msg_t* src, hb_msg_t* txmsg)
 {
-    for (uchar i=first; i<last; i++)
+    for (uchar i=0; i<6; i++)
+    {
+        if (i == 0)
+        {
+            add_txmsg_uchar(txmsg, src->buf[0] | 0x80); // set "reply" flag
+        }
+        else
+        {
+            add_txmsg_uchar(txmsg, src->buf[i]);
+        }
+    }
+}
+void copy_msg_hdr_0_3(hb_msg_t* src, hb_msg_t* txmsg)
+{
+    for (uchar i=0; i<3; i++)
+    {
+        if (i == 0)
+        {
+            add_txmsg_uchar(txmsg, src->buf[0] | 0x80); // set "reply" flag
+        }
+        else
+        {
+            add_txmsg_uchar(txmsg, src->buf[i]);
+        }
+    }
+}
+void copy_msg_hdr_5_6(hb_msg_t* src, hb_msg_t* txmsg)
+{
+    for (uchar i=5; i<6; i++)
     {
         if (i == 0)
         {
@@ -337,26 +365,6 @@ uchar finish_txmsg(hb_msg_t* txmsg)
     }
     return ERR;
 }
-
-// =====================================
-// Check if received timestamp valid
-// =====================================
-uchar ts_valid(hb_msg_t* rxmsg)
-{
-    ulong ts = (ulong)rxmsg->buf[8] << 24;
-    ts |= (ulong)rxmsg->buf[9] << 16;
-    ts |= (uint)rxmsg->buf[10] << 8;
-    ts |= rxmsg->buf[11];
-    if ((ts < coos.uptime + TIME_TOLERANCE) && (ts > coos.uptime -TIME_TOLERANCE))
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
 // =============================================
 // Bubble sort
 // =============================================
@@ -377,6 +385,92 @@ uchar sort(uint* arr, uint len)
         }
     }
     return res;
+}
+/*
+        ******************************************    
+        *** CSMA/CA - HBus collision avoidance ***
+        ******************************************    
+                                                       +---\
+                            +--------------------------|    \
+                            |    +------+   +-----+    | AND |-------Tx 
+    TXD --------------------*----| D    |---| inv |----|    /
+                                 |      |   +-----+    +---/
+           +-----+   +------+    |      |               
+    RXD ---| inv |---| edge |----| G    R----+    
+           +-----+   +------+    +------+    |
+                                            reset                         
+
+At every RXD falling edge the circuit checks UART1 TXD output.  If it is high then it 
+means that an external driver sets dominand state at HBus. Once flip-flop is set, it 
+locks itself and can be reset only via R input (see reset_CSMA_CA())
+*/
+
+// =============================================
+// Configure event system
+// =============================================
+void EVSYS_config(void)
+{
+    EVSYS.CHANNEL2 = 0x4E;          // channel 2 source is PD6, it is connected to 
+                                    // PC1 (USART1 RxD) by h/w link
+    EVSYS.USERCCLLUT2A = 0x03;      // CCL LUT2 event A connected to channel 2
+    //EVSYS.USEREVSYSEVOUTA = 0x03;   // EVSYS EVOUTA pin PA2 (D9) connected to channel 2, debug
+}
+// =============================================
+// Configure CCL
+// =============================================
+void CCL_config(void)
+{
+    CCL.CTRLA = 0;      // disable CCL
+    CCL.LUT0CTRLA = 0;
+    CCL.LUT1CTRLA = 0;
+    CCL.LUT2CTRLA = 0;
+    CCL.LUT3CTRLA = 0;
+    CCL.SEQCTRL0 = 0;       // sequencer 0 disabled
+    CCL.SEQCTRL1 = 1;       // sequencer 1 is D flip-flop
+    CCL.INTCTRL0 = 0; // 0x04;    // interrupt on LUT2 rising edge, eg when collision detected
+    CCL.INTFLAGS = 0;
+    // -----------
+    // LUT0 - not used
+    // -----------
+    CCL.LUT0CTRLB = 0x00;   
+    CCL.LUT0CTRLC = 0x08;   // INSEL2 to USART1 TxD    
+    CCL.TRUTH0    = 0xF0;      
+    // CCL.LUT0CTRLA = 0x41;   // OUTEN to PA3,  CLK_PER 
+
+    // -----------
+    // LUT1 - combines D flip-flop output and USART1 TxD
+    // -----------
+    CCL.LUT1CTRLB = 0x02;   // INSEL0 to LUT2 output, eg to D flip-flop output
+    CCL.LUT1CTRLC = 0x08;   // INSEL2 to USART1 TxD   
+    CCL.TRUTH1    = 0xFA;   // when D flip-flop is set then output is high, eg recessive state on HBus
+    CCL.LUT1CTRLA = 0x61;   // OUTEN to PC3, filter, CLK_PER 
+
+    // -----------
+    // LUT2 - D input of flip-flop and flip-flop output
+    // -----------
+    CCL.LUT2CTRLB = 0x01;   // INSEL0 is feedback from D flip-flop output
+    CCL.LUT2CTRLC = 0x08;   // INSEL2 to USART1 TxD
+    CCL.TRUTH2    = 0xFA;   // direct, high at INSEL0 sets it high
+    CCL.LUT2CTRLA = 0x21;   // filter, clock CLK_PER
+ 
+    // -----------
+    // LUT3 - G input of flip-flop
+    // -----------
+    CCL.LUT3CTRLB = 0x33;   // source: event A, it is UART1 RxD
+    CCL.LUT3CTRLC = 0x03;
+    CCL.TRUTH3    = 0xFB;   // inverted IN1 to make falling edge
+    CCL.LUT3CTRLA = 0x81;   // edge detector, clock CLK_PER
+
+    CCL.CTRLA = 1;      // enable CCL
+}
+// =============================================
+// Reset CSMA/CA logic
+// =============================================
+void reset_CSMA_CA(void)
+{
+    // CCL.INTFLAGS = 0;
+    CCL.LUT2CTRLA = 0;      // When the even LUT is disabled, the latch is cleared asynchronously 
+    CCL.LUT2CTRLA = 0x21;   
 }
 
 /* EOF */
