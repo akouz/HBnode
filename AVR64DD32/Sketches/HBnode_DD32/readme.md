@@ -4,4 +4,4 @@ Sketch implements HBus collision avoidance, CSMA/CA, based on CCL and EVSYS. The
 
 Arduino IDE settings as shown:
 
-![settings](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Sketches/HBnode_DD32/Settings.jpg)
+![settings](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Sketches/HBnode_DD32/Arduino_settings.png)
