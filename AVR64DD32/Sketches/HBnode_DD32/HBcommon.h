@@ -41,6 +41,33 @@
 // Def
 //##############################################################################
 
+// ==================================
+// Pins, EEPROM, LEDs 
+// ==================================
+#define SET_SCL PORTD.DIRCLR = BIT3   // input
+#define CLR_SCL PORTD.DIRSET = BIT3   // output
+#define SCL_IN (PORTD.IN & BIT3)
+#define SET_SDA PORTD.DIRCLR = BIT4
+#define CLR_SDA PORTD.DIRSET = BIT4   
+#define SDA_IN (PORTD.IN & BIT4)
+
+#define EE_WR_ADDR  0xA8        // A0=0, A1=0, A2=1  
+#define EE_RD_ADDR  0xA9        // A0=0, A1=0, A2=1  
+#define FT_WR_ADDR  0x44        // 7-bit addr 0x22
+#define FT_RD_ADDR  0x45  
+
+#define RED_LED  PIN_PF5
+#define GRN_LED  PIN_PD5
+
+#define RLED  RED_LED
+#define GLED  GRN_LED
+
+#define TOGGLE_RLED PORTF.OUT ^= BIT5
+#define TOGGLE_GLED PORTD.OUT ^= BIT5
+
+// ==================================
+// Print to test jig
+// ==================================
 #define PRINT(x)      i2cbb.print(x)
 #define PRINTLN(x)    i2cbb.println(x)
 
@@ -49,10 +76,16 @@
 #define BUF_PRINT(x,y)    i2cbb.print(x,y)
 #define BUF_PRINTLN(x,y)  i2cbb.println(x,y)
 
+// ==================================
+// Buffers
+// ==================================
 #define MAX_BUF       0x90
-#define MAX_SSTR      0x20
-#define MAX_LSTR      0x40
+#define MAX_SSTR      0x20    // short string
+#define MAX_LSTR      0x40    // long string
 
+// ==================================
+// Misc
+// ==================================
 #ifndef NULL  
     #define NULL 0  
 #endif  
@@ -134,7 +167,6 @@ enum{
     EE_NAME_STR     = 0x100,    // name c-string, up to 63 chars
     EE_LOCATION_STR = 0x140,    // location c-string, up to 63 chars
     EE_DESCR_STR    = 0x180,    // description c-string, up to 63 chars
-
 };
 
 //##############################################################################
@@ -151,8 +183,8 @@ enum{
 #endif
 
 
-#ifndef __HB_MSG_T__
-#define __HB_MSG_T__
+//#ifndef __HB_MSG_T__
+//#define __HB_MSG_T__
 
 typedef struct{
   uchar buf[MAX_BUF];
@@ -172,7 +204,7 @@ typedef struct{
     };
   };
 }hb_msg_t;
-#endif
+//#endif
 
 union ulo_uni {
   ulong ulo;    // uch[0]_uch[1]_uch[2]_uch[3] = ui[0]_ui[1]
@@ -275,6 +307,8 @@ uchar finish_txmsg(hb_msg_t* txmsg);
 
 // uchar ts_valid(hb_msg_t* rxmsg);
 uchar sort(uint* arr, uint len);
+
+void str_limit(char* str, uchar len);
 
 void EVSYS_config(void);
 void CCL_config(void);

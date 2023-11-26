@@ -78,9 +78,6 @@
 #ifndef TOPIC14
 #define TOPIC14 ""
 #endif
-#ifndef TOPIC14
-#define TOPIC14 ""
-#endif
 #ifndef TOPIC15
 #define TOPIC15 ""
 #endif
@@ -234,7 +231,6 @@ void HB_mqtt::get_MsgID(uchar msg_id)
 // =============================================
 uchar HB_mqtt::rd_msg(hb_msg_t *msg)
 {
-    uchar buf[0x10];
     static const char S_val[] = "val";
     static const char S_atime[] = "atime";
     static const char S_daysec[] = "daysec";
@@ -337,13 +333,9 @@ uchar HB_mqtt::rd_msg(hb_msg_t *msg)
                 if (tid > 0) // if it is an assignment
                 {
                     uint addr = EE_TOPIC_ID + 2 * res;
-                    buf[0] = (uchar)(tid >> 8);
-                    buf[1] = (uchar)tid;
-                    while (i2cbb.EE_busy)
-                    {
-                        delay(100);
-                    }
-                    i2cbb.write_EE(buf, addr, 2);
+                    i2cbb.buf[0] = (uchar)(tid >> 8);
+                    i2cbb.buf[1] = (uchar)tid;
+                    i2cbb.write_EE(i2cbb.buf, addr, 2);
                     if (tid < 0xFFFF) // if valid tid
                     {
                         ownTopicId[(uchar)res] = tid; //  bind ownTopicId and ownTopicName
@@ -502,13 +494,16 @@ uint HB_mqtt::print_own_val(uchar idx, char *buf)
     switch (this->flag[idx].val_type)
     {
     case VT_FLOAT:
-        dtostrf(this->value[idx].fl, 4, 2, buf);
+        res = sprintf(buf, "%.2f", (double)this->value[idx].fl);
         //PRINTLN(buf);
+        return res;
+        /* dtostrf(this->value[idx].fl, 4, 2, buf);
         for (uint i = 0; i < 0x20; i++)
         {
             if (buf[i] == 0)
                 return i;
         }
+        */
         break;
     case VT_INT:
         res = sprintf(buf, "%d", this->value[idx].si);
@@ -705,7 +700,6 @@ hb_msg_t *HB_mqtt::publish_own_val(uint idx)
 // =============================================
 uchar HB_mqtt::init_topic_id(uint node_id)
 {
-    uchar buf[0x10];
     static uchar ti = 0;
     static uchar state = 0;
     if ((node_id & 0xF000) == 0xF000) // if temporary NodeID
@@ -741,9 +735,9 @@ uchar HB_mqtt::init_topic_id(uint node_id)
         {
             ownTopicId[ti] = (node_id << 5) | ti; // use NodeID to assign TopicId
             uint addr = EE_TOPIC_ID + 2 * ti;
-            buf[0] = (uchar)(ownTopicId[ti] >> 8);
-            buf[1] = (uchar)ownTopicId[ti];
-            i2cbb.write_EE(buf, addr, 2);
+            i2cbb.buf[0] = (uchar)(ownTopicId[ti] >> 8);
+            i2cbb.buf[1] = (uchar)ownTopicId[ti];
+            i2cbb.write_EE(i2cbb.buf, addr, 2);
             flag[ti].topic_valid = 1;
             this->make_msg_register(ti); // issue REGISTER with newly assigned ownTopicId - targeting gateways
         }

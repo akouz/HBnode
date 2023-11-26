@@ -135,6 +135,8 @@ void coos_task_HBus_rxtx(void)
                             // -----------------
                             // postpone transmission in first run
                             // -----------------
+                            //DBG_PRINT(" postpone=");
+                            //DBG_PRINT(txmsg->postpone);
                             COOS_DELAY(10*txmsg->postpone); // slot is 10 ms
                             txmsg->postpone = 0;
                             clr_rx();

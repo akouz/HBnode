@@ -117,6 +117,26 @@ Mon::Mon(void)
     this->begin();
 }
 // =============================================
+// Read strings from EEPROM
+// =============================================
+void Mon::rd_name(void)
+{
+    i2cbb.read_EE((uchar*)node.name_str, EE_NAME_STR, MAX_SSTR);        // string
+    str_limit(node.name_str, MAX_SSTR);
+}
+// =============================================
+void Mon::rd_location(void)
+{
+    i2cbb.read_EE((uchar*)node.location_str, EE_LOCATION_STR, MAX_LSTR); // string
+    str_limit(node.location_str, MAX_LSTR);
+}
+// =============================================
+void Mon::rd_descr(void)
+{
+    i2cbb.read_EE((uchar*)node.descr_str, EE_DESCR_STR, MAX_LSTR);      // string
+    str_limit(node.descr_str, MAX_LSTR);
+}    
+// =============================================
 // Init monitor
 // =============================================
 void Mon::begin(void)
@@ -179,14 +199,9 @@ void Mon::begin(void)
     // -----------------------------
     // strings
     // -----------------------------
-    i2cbb.read_EE((uchar*)node.name_str, EE_NAME_STR, MAX_SSTR);        // string
-    node.name_str[MAX_SSTR-1] = 0;                                      // ensure
-    //-------------------------
-    i2cbb.read_EE((uchar*)node.location_str, EE_LOCATION_STR, MAX_LSTR);        // string
-    node.location_str[MAX_LSTR-1] = 0;                                          // ensure
-    //-------------------------
-    i2cbb.read_EE((uchar*)node.descr_str, EE_DESCR_STR, MAX_LSTR);      // string
-    node.descr_str[MAX_LSTR-1] = 0;                                     // ensure
+    this->rd_name();
+    this->rd_location();
+    this->rd_descr();
 }
 // =============================================
 // Print project name, sketch file name and revision
@@ -286,8 +301,6 @@ uchar Mon::print_node_descr(void)
     }    
     else
     {
-        PRINT((uchar)node.name_str[0]);
-        PRINT('-');
         PRINTLN("No description");        
         return ERR;
     }
@@ -561,7 +574,7 @@ void print_EE_busy(void)
 // =============================================
 void Mon::rdwr_sn(void)
 {
-    uchar buf[4], i;
+    uchar i;
     // ----------------------
     // write S/N
     // ----------------------
@@ -581,9 +594,9 @@ void Mon::rdwr_sn(void)
             } 
             for (i=0; i<4; i++) // for each byte
             {
-                buf[i] = (uchar)(node.SN >> (8*(3-i))); // MSB goes first
+                i2cbb.buf[i] = (uchar)(node.SN >> (8*(3-i))); // MSB goes first
             }
-            i2cbb.write_EE(buf, EE_SN, 4); 
+            i2cbb.write_EE(i2cbb.buf, EE_SN, 4); 
             PRINT("S/N ");
             if (node.SN)
             {
@@ -619,7 +632,6 @@ void Mon::rdwr_sn(void)
 // =============================================
 void Mon::rdwr_id(void)
 {
-    uchar buf[4];
     // ----------------------
     // write nodeID
     // ----------------------
@@ -628,9 +640,9 @@ void Mon::rdwr_id(void)
         if ((node.ID == 0) || (node.ID == 0xFFFF) || (this->param.val[0] == 0))  // if ID is blank or if ID should be erased
         {
             node.ID = (uint)this->param.val[0];         // use first param as nodeID
-            buf[0] = (uchar)(this->param.val[0] >> 8);  // MSB goes first
-            buf[1] = (uchar)this->param.val[0];         // LSB
-            i2cbb.write_EE(buf, EE_nodeID, 2);          // store nodeID           
+            i2cbb.buf[0] = (uchar)(this->param.val[0] >> 8);  // MSB goes first
+            i2cbb.buf[1] = (uchar)this->param.val[0];         // LSB
+            i2cbb.write_EE(i2cbb.buf, EE_nodeID, 2);          // store nodeID           
             PRINT("nodeID ");
             if (node.ID)
             {
@@ -746,18 +758,15 @@ void Mon::rdwr_str(uchar ii)
         switch(ii)
         {
         case NAME_: 
-            i2cbb.read_EE((uchar *)node.name_str, EE_NAME_STR, MAX_SSTR); 
-            node.name_str[MAX_SSTR-1] = 0;
+            this->rd_name();
             this->print_node_name();
             break;
         case LOCATION_: 
-            i2cbb.read_EE((uchar *)node.location_str, EE_LOCATION_STR, MAX_LSTR); 
-            node.location_str[MAX_LSTR-1] = 0;
+            this->rd_location();
             this->print_node_location();
             break;
         case DESCR_: 
-            i2cbb.read_EE((uchar *)node.descr_str, EE_DESCR_STR, MAX_LSTR); 
-            node.descr_str[MAX_LSTR-1] = 0;
+            this->rd_descr();
             this->print_node_descr();
             break;
         default:
@@ -845,8 +854,8 @@ void Mon::EEwr(void)
     if (this->param.val_cnt > 1)
     {
         uint addr = (uint)this->param.val[0];
-        uchar bb = (uchar)this->param.val[1];
-        i2cbb.write_EE(&bb, addr, 1);
+        i2cbb.buf[0] = (uchar)this->param.val[1];
+        i2cbb.write_EE(i2cbb.buf, addr, 1);
         PRINTLN("Done");
     }
     else

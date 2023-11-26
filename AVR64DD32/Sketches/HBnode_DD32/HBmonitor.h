@@ -87,6 +87,9 @@ class Mon{
         void  topic(void);
         void  parse_notblank_char(char cc, char* buf);
         void  parse_blank_char(char* buf);
+        void  rd_name(void);
+        void  rd_location(void);
+        void  rd_descr(void);
         slong dval = 0;             // decimal number
         ulong hval = 0;             // hex number
         char  rxbuf[MON_RX_BUF];

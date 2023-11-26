@@ -518,17 +518,17 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
     case 0: 
         str = node.name_str;
         addr = EE_NAME_STR;
-        lim = 30;
+        lim = MAX_SSTR;
         break;
     case 1: 
         str = node.location_str;
         addr = EE_LOCATION_STR;
-        lim = 62;
+        lim = MAX_LSTR;
         break;
     case 2: 
         str = node.descr_str;
         addr = EE_DESCR_STR;
-        lim = 62;
+        lim = MAX_LSTR;
         break;
     default:
         this->prep_rply_hdr(rxmsg, rply);
@@ -584,17 +584,22 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
     else if ((rdwr == 0) && ((rxmsg->encrypt) || (node.allow.rddescr)))
     {
 #ifdef DEVICE_DESCRIPTION
-        if (str == 2)
+        if (str_no == 2)
         {
             len = sizeof(fixed_descr);
+            lim = len;
             strcpy(buf, fixed_descr);
             res = OK;
         }
 #else
-        res = i2cbb.read_EE(buf, addr, 0x40);
+        res = i2cbb.read_EE(buf, addr, lim);
 #endif
-        buf[lim+1] = 0;
+        str_limit((char*)buf, lim);
         len = (uchar)strlen((char*)buf);
+        if (buf[0] == 0)
+        {
+            len = 0;            
+        }
         this->prep_rply_hdr(rxmsg, rply);
         this->add_to_hdr(rply, res);
         if (res == OK)
@@ -619,7 +624,7 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
 // =====================================
 uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
 {
-    uchar buf[0x20];
+    // uchar buf[0x20];
     uchar wrbuf = 0;
     uchar val, res = ERR;
     uint  newval;
@@ -631,19 +636,19 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
     {
         if ((rxmsg->encrypt) || (HBcipher.valid == 0))
         {
-            for(uchar i=0x10; i<0x18; i++)
+            for(uchar i=0x10; i<0x20; i++)
             {
-                buf[i] = 0xFF;
+                i2cbb.buf[i] = 0xFF;
             }
             // store unencrypted access settings
             res = OK;
             newval = 0x100*rxmsg->buf[12] + rxmsg->buf[13]; 
             if (newval != node.allow.all)  // if new settings are different
             {                
-                buf[0] = rxmsg->buf[12];
-                buf[1] = rxmsg->buf[13];
-                buf[2] = ~rxmsg->buf[12];
-                buf[3] = ~rxmsg->buf[13];
+                i2cbb.buf[0] = rxmsg->buf[12];
+                i2cbb.buf[1] = rxmsg->buf[13];
+                i2cbb.buf[2] = ~rxmsg->buf[12];
+                i2cbb.buf[3] = ~rxmsg->buf[13];
                 wrbuf = 1; // write new security
             }
             // store EEPROM key
@@ -656,18 +661,18 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
                         for (uchar j=0; j<4; j++) // 4 bytes each
                         {
                             // reverse byte order in every key
-                            buf[4*i+j] = rxmsg->buf[14 + 4*i + 3-j];
+                            i2cbb.buf[4*i+j] = rxmsg->buf[14 + 4*i + 3-j];
                         }
                     }
-                    uint crc = calc_crc(buf, 16);
-                    buf[0x10] = (uchar)(crc >> 8);
-                    buf[0X11] = (uchar)crc;
-                    buf[0X12] = 0xFF;
-                    buf[0X13] = 0xFF;
-                    buf[0x14] = rxmsg->buf[12];
-                    buf[0x15] = rxmsg->buf[13];
-                    buf[0x16] = ~rxmsg->buf[12];
-                    buf[0x17] = ~rxmsg->buf[13];
+                    uint crc = calc_crc(i2cbb.buf, 16);
+                    i2cbb.buf[0x10] = (uchar)(crc >> 8);
+                    i2cbb.buf[0X11] = (uchar)crc;
+                    i2cbb.buf[0X12] = 0xFF;
+                    i2cbb.buf[0X13] = 0xFF;
+                    i2cbb.buf[0x14] = rxmsg->buf[12];
+                    i2cbb.buf[0x15] = rxmsg->buf[13];
+                    i2cbb.buf[0x16] = ~rxmsg->buf[12];
+                    i2cbb.buf[0x17] = ~rxmsg->buf[13];
                     wrbuf |= 2;  // write key                    
                 }
                 else
@@ -679,7 +684,7 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
         switch (wrbuf & 3)
         {
         case 1: // write security only
-            res = i2cbb.write_EE(buf, (uint)EE_SECURITY, 4);
+            res = i2cbb.write_EE(i2cbb.buf, (uint)EE_SECURITY, 4);
             PRINT(" New_security");
             if (res == OK)
             {
@@ -687,21 +692,21 @@ uchar HB_cmd::rply_security(hb_msg_t* rxmsg, hb_msg_t* rply)
             }            
             break;
         case 2: // write key only
-            res = i2cbb.write_EE(buf, EE_XTEA_KEY, 0x12);
+            res = i2cbb.write_EE(i2cbb.buf, EE_XTEA_KEY, 0x12);
             PRINT(" New_EEkey");
             if (res == OK)
             {
-                copy_buf(buf, HBcipher.key.uch, 16); 
+                copy_buf(i2cbb.buf, HBcipher.key.uch, 16); 
                 HBcipher.encrypt_EEkeys();
             }
             break;
         case 3: // write security and key 
-            res = i2cbb.write_EE(buf, EE_XTEA_KEY, 0x18);
-            PRINT(" New_security and EEkey");
+            res = i2cbb.write_EE(i2cbb.buf, EE_XTEA_KEY, 0x18);             
+            PRINT(" New security and EEkey");
             if (res == OK)
             {
                 node.allow.all = newval;
-                copy_buf(buf, HBcipher.key.uch, 16);                
+                copy_buf(i2cbb.buf, HBcipher.key.uch, 16);                
                 HBcipher.encrypt_EEkeys();
             }            
             break;

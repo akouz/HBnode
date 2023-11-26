@@ -157,6 +157,8 @@ void coos_task_1ms(void)
         node.rst_cnt--;
         if (node.rst_cnt == 0)  // must reset
         {
+          PRINTLN(" resetting...");
+          COOS_DELAY(10);
           CCP = IOREG;          // unlock
           RSTCTRL.SWRR = 1;     // software reset
           while(1)              // not required really...

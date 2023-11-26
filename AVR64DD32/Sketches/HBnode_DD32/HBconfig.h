@@ -57,30 +57,41 @@
 //            correctly disregards to phenomena with passing parameters to functions 
 // rev 0.18 - implementing CSMA/CA using CCL and EVSYS
 // rev 0.19 - improved CSMA/CA implemetation, see CCL_config() 
+// rev 0.20 - bug fix, small improvements
+// rev 0.21 - use i2cbb.buf instead of local buffers; use sprintf in case VT_FLOAT
+// -------------
+// rev 1.0  - release
 
 //##############################################################################
 // Def
 //##############################################################################
 
 // ==================================
-// Software revision
+// Revision
 // ==================================
-
 #define PROJECT_NAME  "HBnode"  
-#define ARDUINO_MODULE "HBnode Pro Mini"
-#define HW_REV_MAJ    1
-#define HW_REV_MIN    0
-#define SKETCH_NAME   "HBnode_DD32.ino"
-#define SW_REV_MAJ    0
-#define SW_REV_MIN    19
 
+#define DEV_MODEL   1   // 1- Pro Mini, 2 - Nano
+#if  (DEV_MODEL == 1)
+    #define ARDUINO_MODULE "HBnode Pro Mini"
+    #define HW_REV_MAJ    1
+    #define HW_REV_MIN    0
+#elif  (DEV_MODEL == 2)   
+    #define ARDUINO_MODULE "HBnode Nano"
+    #define HW_REV_MAJ    1
+    #define HW_REV_MIN    0
+#endif
+
+#define SKETCH_NAME   "HBnode_DD32.ino"
+#define SW_REV_MAJ    1
+#define SW_REV_MIN    0
 #define SW_REV  (0x100*SW_REV_MAJ + SW_REV_MIN)
 
 // ==================================
 // Device descriptor for REV command
 // ==================================
-#define HB_DEV_TYPE         2           // device type
-#define HB_DEV_MODEL        1           // device model
+#define HB_DEV_TYPE         2           // device type - node
+#define HB_DEV_MODEL        DEV_MODEL   // device model
 #define HB_REV_MAJ          1
 #define HB_REV_MIN          5
 #define HB_HW_REV_MAJ       HW_REV_MAJ  // h/w rev major
@@ -104,28 +115,5 @@
 #define TOPIC2      "test3"
 #define TOPIC3      "test4"
 
-// ==================================
-// Pins, EEPROM, LEDs 
-// ==================================
-#define SET_SCL PORTD.DIRCLR = BIT3   // input
-#define CLR_SCL PORTD.DIRSET = BIT3   // output
-#define SCL_IN (PORTD.IN & BIT3)
-#define SET_SDA PORTD.DIRCLR = BIT4
-#define CLR_SDA PORTD.DIRSET = BIT4   
-#define SDA_IN (PORTD.IN & BIT4)
-
-#define EE_WR_ADDR  0xA8        // A0=0, A1=0, A2=1  
-#define EE_RD_ADDR  0xA9        // A0=0, A1=0, A2=1  
-#define FT_WR_ADDR  0x44        // 7-bit addr 0x22
-#define FT_RD_ADDR  0x45  
-
-#define RED_LED  PIN_PF5
-#define GRN_LED  PIN_PD5
-
-#define RLED  RED_LED
-#define GLED  GRN_LED
-
-#define TOGGLE_RLED PORTF.OUT ^= BIT5
-#define TOGGLE_GLED PORTD.OUT ^= BIT5
 
 #endif	/* __CONFIG_H */

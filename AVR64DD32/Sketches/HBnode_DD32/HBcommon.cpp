@@ -386,25 +386,42 @@ uchar sort(uint* arr, uint len)
     }
     return res;
 }
+// =============================================
+// Limit string
+// =============================================
+void str_limit(char* str, uchar len)
+{
+    if ((uchar)str[0] == 0xFF)
+    {
+        str[0] = 0;
+    }    
+    if (len)
+    {
+        str[len-1] = 0;
+    }    
+}
+
+// =============================================
+// CSMA/CA - HBus collision avoidance
+// =============================================
 /*
-        ******************************************    
-        *** CSMA/CA - HBus collision avoidance ***
-        ******************************************    
-                                                       +---\
+                                                       +---.
                             +--------------------------|    \
                             |    +------+   +-----+    | AND |-------Tx 
     TXD --------------------*----| D    |---| inv |----|    /
-                                 |      |   +-----+    +---/
+                                 |      |   +-----+    +---'
            +-----+   +------+    |      |               
-    RXD ---| inv |---| edge |----| G    R----+    
+    RXD ---| inv |---| edge |----| G  R |----+    
            +-----+   +------+    +------+    |
                                             reset                         
 
 At every RXD falling edge the circuit checks UART1 TXD output.  If it is high then it 
 means that an external driver sets dominand state at HBus. Once flip-flop is set, it 
-locks itself and can be reset only via R input (see reset_CSMA_CA())
-*/
+locks itself and can be reset only via R input (see reset_CSMA_CA()).
 
+This mechanism does not detect all variants of clashes, but it is considered to be 
+sufficient to avoid most collisions.
+*/
 // =============================================
 // Configure event system
 // =============================================
@@ -427,7 +444,7 @@ void CCL_config(void)
     CCL.LUT3CTRLA = 0;
     CCL.SEQCTRL0 = 0;       // sequencer 0 disabled
     CCL.SEQCTRL1 = 1;       // sequencer 1 is D flip-flop
-    CCL.INTCTRL0 = 0; // 0x04;    // interrupt on LUT2 rising edge, eg when collision detected
+    CCL.INTCTRL0 = 0;       // no CCL interrupts
     CCL.INTFLAGS = 0;
     // -----------
     // LUT0 - not used
@@ -435,7 +452,7 @@ void CCL_config(void)
     CCL.LUT0CTRLB = 0x00;   
     CCL.LUT0CTRLC = 0x08;   // INSEL2 to USART1 TxD    
     CCL.TRUTH0    = 0xF0;      
-    // CCL.LUT0CTRLA = 0x41;   // OUTEN to PA3,  CLK_PER 
+    // CCL.LUT0CTRLA = 0x41;   // OUTEN to PA3,  debug 
 
     // -----------
     // LUT1 - combines D flip-flop output and USART1 TxD
@@ -443,7 +460,7 @@ void CCL_config(void)
     CCL.LUT1CTRLB = 0x02;   // INSEL0 to LUT2 output, eg to D flip-flop output
     CCL.LUT1CTRLC = 0x08;   // INSEL2 to USART1 TxD   
     CCL.TRUTH1    = 0xFA;   // when D flip-flop is set then output is high, eg recessive state on HBus
-    CCL.LUT1CTRLA = 0x61;   // OUTEN to PC3, filter, CLK_PER 
+    CCL.LUT1CTRLA = 0x61;   // OUTEN to PC3, filter, clock CLK_PER 
 
     // -----------
     // LUT2 - D input of flip-flop and flip-flop output
@@ -451,7 +468,7 @@ void CCL_config(void)
     CCL.LUT2CTRLB = 0x01;   // INSEL0 is feedback from D flip-flop output
     CCL.LUT2CTRLC = 0x08;   // INSEL2 to USART1 TxD
     CCL.TRUTH2    = 0xFA;   // direct, high at INSEL0 sets it high
-    CCL.LUT2CTRLA = 0x21;   // filter, clock CLK_PER
+    CCL.LUT2CTRLA = 0x01;   // clock CLK_PER
  
     // -----------
     // LUT3 - G input of flip-flop
@@ -459,7 +476,7 @@ void CCL_config(void)
     CCL.LUT3CTRLB = 0x33;   // source: event A, it is UART1 RxD
     CCL.LUT3CTRLC = 0x03;
     CCL.TRUTH3    = 0xFB;   // inverted IN1 to make falling edge
-    CCL.LUT3CTRLA = 0x81;   // edge detector, clock CLK_PER
+    CCL.LUT3CTRLA = 0xA1;   // edge detector, filter, clock CLK_PER
 
     CCL.CTRLA = 1;      // enable CCL
 }
@@ -468,7 +485,6 @@ void CCL_config(void)
 // =============================================
 void reset_CSMA_CA(void)
 {
-    // CCL.INTFLAGS = 0;
     CCL.LUT2CTRLA = 0;      // When the even LUT is disabled, the latch is cleared asynchronously 
     CCL.LUT2CTRLA = 0x21;   
 }
