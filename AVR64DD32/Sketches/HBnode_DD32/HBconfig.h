@@ -56,11 +56,12 @@
 // rev 0.17 - handles HBus time stamps; rply_security() uses a workaround and operates 
 //            correctly disregards to phenomena with passing parameters to functions 
 // rev 0.18 - implementing CSMA/CA using CCL and EVSYS
-// rev 0.19 - improved CSMA/CA implemetation, see CCL_config() 
+// rev 0.19 - improved CSMA/CA implementation, see CCL_config() 
 // rev 0.20 - bug fix, small improvements
 // rev 0.21 - use i2cbb.buf instead of local buffers; use sprintf in case VT_FLOAT
 // -------------
 // rev 1.0  - release
+// rev 1.1  - added strings "Project", "Sketch" and "Module" to CmdDescr
 
 //##############################################################################
 // Def
@@ -84,7 +85,7 @@
 
 #define SKETCH_NAME   "HBnode_DD32.ino"
 #define SW_REV_MAJ    1
-#define SW_REV_MIN    0
+#define SW_REV_MIN    1
 #define SW_REV  (0x100*SW_REV_MAJ + SW_REV_MIN)
 
 // ==================================

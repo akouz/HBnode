@@ -138,6 +138,8 @@ enum{
     OK              = 0,
     OK1             = 1,
     SKIP            = 2,
+
+    // errors
     ERR             = 0xEE,
     ERR_BUSY        = 0xE0,
     ERR_PARAM       = 0xE1,

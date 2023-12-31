@@ -40,6 +40,10 @@ HB_cmd HBcmd;
     const char fixed_descr[] = DEVICE_DESCRIPTION;
 #endif
 
+const char proj_str[] = PROJECT_NAME;
+const char sketch_str[] = SKETCH_NAME;
+const char module_str[] = ARDUINO_MODULE;
+
 //##############################################################################
 // Func
 //##############################################################################
@@ -232,6 +236,10 @@ uchar HB_cmd::rply_rev(hb_msg_t* rxmsg, hb_msg_t* rply)
         add_txmsg_uchar(rply, HB_SKETCH_REV_MIN);
         add_txmsg_uchar(rply, HB_REV_MAJ);      // HBus revision
         add_txmsg_uchar(rply, HB_REV_MIN);
+        add_txmsg_uchar(rply, (uchar)(node.prog_len >> 8)); // signature - length   
+        add_txmsg_uchar(rply, (uchar)node.prog_len); 
+        add_txmsg_uchar(rply, (uchar)(node.prog_crc >> 8)); // signature - crc   
+        add_txmsg_uchar(rply, (uchar)node.prog_crc); 
         return READY;
     }
     return ERR_SECURITY;
@@ -512,7 +520,7 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
     uint addr;
     uchar buf[0x40];
     rdwr = rxmsg->buf[7] & 1; 
-    str_no = rxmsg->buf[7] >> 1;   // 0 - name, 1 - location, 2 - description
+    str_no = rxmsg->buf[7] >> 1;   // 0 - name, 1 - location, 2 - description, 3 - project, 4 - sketch
     switch (str_no)
     {
     case 0: 
@@ -529,6 +537,10 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
         str = node.descr_str;
         addr = EE_DESCR_STR;
         lim = MAX_LSTR;
+        break;
+    case 3: 
+    case 4: 
+    case 5: 
         break;
     default:
         this->prep_rply_hdr(rxmsg, rply);
@@ -573,6 +585,10 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
                 strcpy(str, (char*)rxmsg->buf+13);
             }
         }
+        if (res == OK)
+        {
+            res = rxmsg->buf[7]; // repeat param in reply
+        }
         this->prep_rply_hdr(rxmsg, rply);
         this->add_to_hdr(rply, res);
         return READY;
@@ -582,18 +598,43 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
     // read
     // ----------------------
     else if ((rdwr == 0) && ((rxmsg->encrypt) || (node.allow.rddescr)))
-    {
-#ifdef DEVICE_DESCRIPTION
-        if (str_no == 2)
+    {        
+        if (str_no < 2)
         {
+            res = i2cbb.read_EE(buf, addr, lim);
+        }
+        else if (str_no == 2) 
+        {
+#ifdef DEVICE_DESCRIPTION
             len = sizeof(fixed_descr);
             lim = len;
             strcpy(buf, fixed_descr);
             res = OK;
-        }
 #else
         res = i2cbb.read_EE(buf, addr, lim);
 #endif
+        }
+        else if (str_no == 3) 
+        {
+            len = sizeof(proj_str);
+            lim = len;
+            strcpy((char*)buf, proj_str);
+            res = OK;
+        }
+        else if (str_no == 4) 
+        {
+            len = sizeof(sketch_str);
+            lim = len;
+            strcpy((char*)buf, sketch_str);
+            res = OK;
+        }
+        else if (str_no == 5) 
+        {
+            len = sizeof(module_str);
+            lim = len;
+            strcpy((char*)buf, module_str);
+            res = OK;
+        }
         str_limit((char*)buf, lim);
         len = (uchar)strlen((char*)buf);
         if (buf[0] == 0)
@@ -601,8 +642,12 @@ uchar HB_cmd::rply_descr(hb_msg_t* rxmsg, hb_msg_t* rply)
             len = 0;            
         }
         this->prep_rply_hdr(rxmsg, rply);
-        this->add_to_hdr(rply, res);
         if (res == OK)
+        {
+            res = rxmsg->buf[7]; // repeat param in reply
+        }
+        this->add_to_hdr(rply, res);
+        if (res < 0x80) // if OK
         {
             add_txmsg_uchar(rply,  len);
             if (len)
