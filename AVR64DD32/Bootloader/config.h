@@ -32,6 +32,7 @@
  * rev 1.0      - debugged
  * rev 1.1      - bug fix, added CCP = IOREG
  * rev 1.2      - do not use WDT while running bootloader
+ * rev 1.3      - disable MVIO, see .SYSCFG1, it is required for ADC inputs at port C pins 
  */
 
 #ifndef __CONFIG_H

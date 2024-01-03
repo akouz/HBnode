@@ -1,5 +1,5 @@
 /*
- * Project  HBus bootloader  
+ * Project  HBus bootloader
  * File     boot.c
  * Target   AVRxxDD32
  * Compiler AVR-GCC v7.3.0  pack AVR-Rx_DFP v1.10.124
@@ -23,17 +23,17 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * ----------------------------------------------
- * 
+ *
  * After power-up bootloader tries to access external I2C EEPROM 24LC512.
- * If EEPROM stores a valid code, bootloader copies it into application code area. 
- * 
+ * If EEPROM stores a valid code, bootloader copies it into application code area.
+ *
  * I2C access by bit-bang on pins PC2 (SCL) and PD1 (SDA).
- * 
+ *
  * A valid code in EEPROM defined by a descriptor, an 8-byte record in EEPROM at
  * address 0x0010. Descriptor fields are as follows:
- * 
+ *
  * ----------------------------------
  * addr     content
  * ----------------------------------
@@ -46,15 +46,15 @@
  * 0x0016   MSB byte of CRC
  * 0x0017   LSB byte of CRC
  * ----------------------------------
- * 
+ *
  * Bootloader does not use CRC. It is duty of application code to calculate
  * CRC of the supplied code starting from address $400 and to write descriptor
  * if CRC matches.
- * 
+ *
  * Bootloader copies specified number of bytes from EEPROM address 0x0400 into
  * program memory starting from addr 0x0400. When code copied, bootloader clears
  * descriptor and jumps to address 0x0400.
- * 
+ *
  */
 
 //##############################################################################
@@ -74,7 +74,7 @@ FUSES = {
 	.BODCFG = 0x00,     // BODCFG {SLEEP=DISABLE, ACTIVE=DISABLE, SAMPFREQ=128Hz, LVL=BODLEVEL0}
 	.OSCCFG = 0x00,     // OSCCFG {CLKSEL=OSCHF}
 	.SYSCFG0 = 0xD9,    // SYSCFG0 {EESAVE=keep, RSTPINCFG=RST, UPDIPINCFG=UPDI, CRCSEL=CRC16, CRCSRC=NOCRC}
-	.SYSCFG1 = 0x0C,    // SYSCFG1 {SUT=8ms, MVSYSCFG=DUAL}
+	.SYSCFG1 = 0x14,    // SYSCFG1 {SUT=8ms, MVSYSCFG=SINGLE}, MVIO should be disabled
 	.CODESIZE = 0x00,   // CODESIZE no appdata, only boot+appcode
 	.BOOTSIZE = BOOT_BLOCKS, // 2 blocks, 512*2 = 1K bytes
 };
@@ -97,14 +97,14 @@ uchar bb;
 // ============================================
 __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
 {
-    // Initialize system for AVR GCC support, expects r1 = 0 
-    asm volatile("clr r1");          
+    // Initialize system for AVR GCC support, expects r1 = 0
+    asm volatile("clr r1");
     init_i2c();
     if (OK == i2c_read(eebuf, 0x10, 8))     // read descriptor: 8 bytes starting from addr 0x10
     {
-#ifdef DEBUG_BOOT    
+#ifdef DEBUG_BOOT
         fill_descr(eebuf);      // pre-defined descriptor
-#endif    
+#endif
         len = ((uint)eebuf[4] << 8) + eebuf[5];     // length
         adr = APPCODE_ADDR;                 // byte addr
         if (OK == check_pattern(eebuf))     // if pattern matched
@@ -135,17 +135,17 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
                     {
                         dat |= (uint)eebuf[ii] << 8;            // MSB byte
                         pgm_word_write((adr & 0xFFFE), dat);    // address must be even
-                    }    
+                    }
                     else // even address
                     {
                         dat = eebuf[ii];    // LSB byte
-                    }    
+                    }
                     adr++;
                     if (++cnt > len)
                         break;
-                }    
+                }
                 wait_flash();
-            }    
+            }
             // -----------------------
             // clear descriptor and reset
             // -----------------------
@@ -155,37 +155,37 @@ __attribute__((naked)) __attribute__((section(".ctors"))) void boot(void)
             while(1)
             {
                 NOP();                  // give enough time to complete EEPROM writing
-            }    
-        } // if pattern matches    
+            }
+        } // if pattern matches
     }
-#ifdef DEBUG_BOOT    
+#ifdef DEBUG_BOOT
     i2c_send(0,NULL,0); // CR+LF
     cnt = 0;
-    adr = APPCODE_ADDR; 
+    adr = APPCODE_ADDR;
     while (cnt < len)
     {
         for (ii=0; ii<0x10; ii++)
         {
             eebuf[ii] = pgm_byte_read(adr+ii);
-        }    
+        }
         if (i2c_send(adr, eebuf, 0x10))
-        {    
+        {
             break;  // FT200XD not connected
-        }    
+        }
         cnt += 0x10;
         adr += 0x10;
         if ((adr & 0x007F) == 0)
         {
-            i2c_send(0,NULL,0); // CR+LF            
+            i2c_send(0,NULL,0); // CR+LF
         }
-    }    
+    }
     while(1)
-    {    
+    {
         NOP();
-    }    
-#else    
+    }
+#else
     asm("jmp 0x0400");  // jump to application
-#endif    
+#endif
 }
 
 /* EOF */
