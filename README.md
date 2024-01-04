@@ -7,7 +7,7 @@ Microcontroller boards for [HBus](https://github.com/akouz/HBus) based on [AVR64
 
 # How to program HBnode board:
 1. Burn bootloader. 
-   Plug PicKit4 to 4-pin connector, apply power to the board and burn [HBnode bootloader](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Bootloader/HBnode_bootloader.hex) using MPLAB.X IDE or MPLAB.X IPE.
+   Plug PicKit4 to 4-pin connector, apply power to the board and burn [HBnode bootloader](https://github.com/akouz/HBnode/blob/main/AVR64DD32/Bootloader) using MPLAB.X IDE or MPLAB.X IPE.
 
 ![HBnode with PicKit4](https://github.com/akouz/HBnode/blob/main/AVR64DD32/HBnode_with_PicKit4.jpg)
 
